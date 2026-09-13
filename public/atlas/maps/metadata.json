@@ -1,0 +1,391 @@
+{
+  "aether": {
+    "bounds": {
+      "x": 0,
+      "z": 0,
+      "size": 245
+    },
+    "pois": [
+      {
+        "id": "aether-0",
+        "name": "晶石圣所 · 内外装饰",
+        "type": "shrine",
+        "point": {
+          "x": 14,
+          "z": 10
+        }
+      },
+      {
+        "id": "aether-1",
+        "name": "云上藏书亭 · 内外装饰",
+        "type": "shrine",
+        "point": {
+          "x": -22,
+          "z": -26
+        }
+      },
+      {
+        "id": "aether-2",
+        "name": "星辰观测所 · 内外装饰",
+        "type": "shrine",
+        "point": {
+          "x": 0,
+          "z": -62
+        }
+      },
+      {
+        "id": "aether-star-hall",
+        "name": "星辰馆 · 藏星室",
+        "type": "star-hall",
+        "point": {
+          "x": 4,
+          "z": -44.5
+        }
+      }
+    ],
+    "miniature": {
+      "name": "星辰馆 · 藏星室",
+      "bytes": 9762660
+    }
+  },
+  "highland": {
+    "bounds": {
+      "x": 0,
+      "z": 153,
+      "size": 190
+    },
+    "pois": [
+      {
+        "id": "highland-3",
+        "name": "山城木屋 01",
+        "type": "house",
+        "point": {
+          "x": 21.000000000000004,
+          "z": 122
+        }
+      },
+      {
+        "id": "highland-4",
+        "name": "山城木屋 02",
+        "type": "house",
+        "point": {
+          "x": -25.999999999999996,
+          "z": 122
+        }
+      },
+      {
+        "id": "highland-5",
+        "name": "山城木屋 03",
+        "type": "house",
+        "point": {
+          "x": 15,
+          "z": 148
+        }
+      },
+      {
+        "id": "highland-6",
+        "name": "山城木屋 04",
+        "type": "house",
+        "point": {
+          "x": -15,
+          "z": 147
+        }
+      },
+      {
+        "id": "highland-7",
+        "name": "山城木屋 05",
+        "type": "house",
+        "point": {
+          "x": -32,
+          "z": 166
+        }
+      },
+      {
+        "id": "highland-8",
+        "name": "山城木屋 06",
+        "type": "house",
+        "point": {
+          "x": 36,
+          "z": 162
+        }
+      },
+      {
+        "id": "highland-9",
+        "name": "山城帐居 07",
+        "type": "tent",
+        "point": {
+          "x": 35,
+          "z": 176
+        }
+      },
+      {
+        "id": "highland-10",
+        "name": "山城帐居 08",
+        "type": "tent",
+        "point": {
+          "x": -36.00000000000001,
+          "z": 181
+        }
+      },
+      {
+        "id": "highland-11",
+        "name": "山城帐居 09",
+        "type": "tent",
+        "point": {
+          "x": 2.9999999999999996,
+          "z": 155
+        }
+      },
+      {
+        "id": "highland-12",
+        "name": "山城帐居 10",
+        "type": "tent",
+        "point": {
+          "x": -11.000000000000004,
+          "z": 174
+        }
+      },
+      {
+        "id": "highland-13",
+        "name": "山城帐居 11",
+        "type": "tent",
+        "point": {
+          "x": 13.999999999999998,
+          "z": 161
+        }
+      },
+      {
+        "id": "market-provisions",
+        "name": "山风杂货铺",
+        "type": "shop",
+        "point": {
+          "x": 5.000000000000002,
+          "z": 138.2
+        }
+      },
+      {
+        "id": "market-apothecary",
+        "name": "银铃药房",
+        "type": "shop",
+        "point": {
+          "x": 5.000000000000001,
+          "z": 145.1
+        }
+      },
+      {
+        "id": "market-vault",
+        "name": "山城保管库",
+        "type": "shop",
+        "point": {
+          "x": -4.999999999999998,
+          "z": 138.2
+        }
+      },
+      {
+        "id": "market-courier",
+        "name": "五境驿站",
+        "type": "shop",
+        "point": {
+          "x": -4.999999999999999,
+          "z": 145.1
+        }
+      }
+    ],
+    "miniature": {
+      "name": "山风杂货铺",
+      "bytes": 6416084
+    }
+  },
+  "forest": {
+    "bounds": {
+      "x": 430,
+      "z": 94,
+      "size": 260
+    },
+    "pois": [
+      {
+        "id": "forest-15",
+        "name": "紫境遗迹 · 石作与供灯",
+        "type": "ruin",
+        "point": {
+          "x": 423.31306275639014,
+          "z": 30
+        }
+      },
+      {
+        "id": "forest-garden-glasshouse",
+        "name": "月桂育苗温室",
+        "type": "glasshouse",
+        "point": {
+          "x": 456,
+          "z": 114
+        }
+      },
+      {
+        "id": "forest-garden-herbarium",
+        "name": "紫叶药草馆",
+        "type": "herbarium",
+        "point": {
+          "x": 472,
+          "z": 119
+        }
+      }
+    ],
+    "miniature": {
+      "name": "紫叶药草馆",
+      "bytes": 10398268
+    }
+  },
+  "watercourt": {
+    "bounds": {
+      "x": 100,
+      "z": -511,
+      "size": 225
+    },
+    "pois": [
+      {
+        "id": "watercourt-16",
+        "name": "西岸会客亭",
+        "type": "pavilion",
+        "point": {
+          "x": 84,
+          "z": -474
+        }
+      },
+      {
+        "id": "watercourt-17",
+        "name": "晨露议事亭",
+        "type": "pavilion",
+        "point": {
+          "x": 119.2,
+          "z": -477.2
+        }
+      },
+      {
+        "id": "watercourt-18",
+        "name": "旧月藏书亭",
+        "type": "pavilion",
+        "point": {
+          "x": 92,
+          "z": -515.6
+        }
+      },
+      {
+        "id": "watercourt-19",
+        "name": "临水小祠",
+        "type": "pavilion",
+        "point": {
+          "x": 108,
+          "z": -515.6
+        }
+      },
+      {
+        "id": "watercourt-20",
+        "name": "高台观星厅",
+        "type": "pavilion",
+        "point": {
+          "x": 128.8,
+          "z": -520.4
+        }
+      },
+      {
+        "id": "watercourt-21",
+        "name": "远庭祈愿亭",
+        "type": "pavilion",
+        "point": {
+          "x": 111.2,
+          "z": -547.6
+        }
+      },
+      {
+        "id": "quarter-archive",
+        "name": "旧月书记馆",
+        "type": "archive",
+        "point": {
+          "x": 80.8,
+          "z": -419.6
+        }
+      },
+      {
+        "id": "quarter-inn",
+        "name": "白帆旅舍",
+        "type": "inn",
+        "point": {
+          "x": 100,
+          "z": -418
+        }
+      },
+      {
+        "id": "quarter-harbor",
+        "name": "晨露舟会",
+        "type": "harbor",
+        "point": {
+          "x": 120.8,
+          "z": -421.2
+        }
+      }
+    ],
+    "miniature": {
+      "name": "旧月书记馆",
+      "bytes": 15127092
+    }
+  },
+  "valley": {
+    "bounds": {
+      "x": 790,
+      "z": 110,
+      "size": 280
+    },
+    "pois": [
+      {
+        "id": "valley-22",
+        "name": "北境旅人木屋",
+        "type": "house",
+        "point": {
+          "x": 806.9,
+          "z": 150.4
+        }
+      },
+      {
+        "id": "valley-23",
+        "name": "北境瞭望台 · 加固",
+        "type": "watchtower",
+        "point": {
+          "x": 808.85,
+          "z": 111.4
+        }
+      },
+      {
+        "id": "valley-town-hall",
+        "name": "北境驿务厅",
+        "type": "hall",
+        "point": {
+          "x": 830.0000000000001,
+          "z": 122
+        }
+      },
+      {
+        "id": "valley-town-lodge",
+        "name": "雪炉会馆",
+        "type": "lodge",
+        "point": {
+          "x": 818.0000000000001,
+          "z": 134
+        }
+      },
+      {
+        "id": "valley-town-storehouse",
+        "name": "雪松货栈",
+        "type": "storehouse",
+        "point": {
+          "x": 843.0000000000001,
+          "z": 134
+        }
+      }
+    ],
+    "miniature": {
+      "name": "雪炉会馆",
+      "bytes": 14234340
+    }
+  }
+}

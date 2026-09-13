@@ -1,0 +1,21 @@
+{
+  "name": "north-valley-personal-world",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build --config scripts/vite.worlds.config.js",
+    "preview": "vite preview --host 127.0.0.1 --config scripts/vite.worlds.config.js",
+    "build:watercourt": "vite build --config scripts/vite.watercourt.config.js",
+    "build:worlds": "vite build --config scripts/vite.worlds.config.js",
+    "build:forest": "vite build"
+  },
+  "dependencies": {
+    "three": "0.180.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0",
+    "vite": "^7.3.6"
+  }
+}

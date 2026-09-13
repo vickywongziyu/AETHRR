@@ -1,0 +1,93 @@
+/* Exploration keeps the world dominant; every existing action remains reachable. */
+body[data-visitor] .visitor-menu{font-size:12px;border-left:1px solid #d7c69d55;padding-left:18px}
+body[data-visitor] #app > header nav [data-panel=about],body[data-visitor] #app > header nav [data-panel=works],body[data-visitor] #app > header nav #region{display:none}
+body[data-visitor-menu=true] #app > header nav [data-panel=about],body[data-visitor-menu=true] #app > header nav [data-panel=works],body[data-visitor-menu=true] #app > header nav #region{display:block}
+body[data-visitor=exploring] .intro{display:none}
+body[data-visitor] #app > header{top:23px;left:28px;right:28px}
+body[data-visitor] .brand{gap:10px;text-shadow:0 2px 12px #172626}
+body[data-visitor] .brand span{font-size:21px}
+body[data-visitor] .brand .compass{width:34px;height:34px}
+body[data-visitor] #app > header nav{gap:22px;padding:4px 13px;background:#14282566;border-radius:2px;backdrop-filter:blur(8px)}
+body[data-visitor] #app > header nav button{font-size:12px}
+body[data-visitor] #app > header .outline{padding:8px 12px!important;margin:0;border-color:#dac79a55}
+body[data-visitor] .edge-shade{background:linear-gradient(0deg,#0c181e6b,transparent 18%),linear-gradient(180deg,#0a1b2055,transparent 16%)}
+body[data-visitor] #visitor-route-panel{display:none;left:26px;right:390px;bottom:82px;max-width:850px;padding:12px;background:#172924ee;border:1px solid #9f987255}
+body[data-visitor-routes=true] #visitor-route-panel{display:block}
+body[data-visitor] #visitor-route-panel .tools{margin-top:12px;flex-direction:row;justify-content:space-between}
+.visitor-tools{position:fixed;left:28px;bottom:30px;z-index:5;display:flex;gap:5px}
+.visitor-tools button{padding:11px 14px;color:#e6dcc5;background:#192b27d9;border:1px solid #b8a77c66;font-size:11px;letter-spacing:.06em;min-height:40px}
+.visitor-tools kbd{font-size:10px;opacity:.6;margin-left:5px}
+body[data-visitor] .atlas-controls{right:28px;bottom:26px;width:340px;padding:12px 14px;background:#172823e3;backdrop-filter:blur(10px);border-color:#b8a77c66}
+body[data-visitor] .atlas-location{font-size:13px}
+body[data-visitor] .atlas-location small{display:none}
+body[data-visitor] .atlas-environment{margin-left:auto}
+body[data-visitor] .atlas-modes{gap:3px;margin-top:8px}
+body[data-visitor] .atlas-modes button{font-size:11px;padding:8px 7px}
+body[data-visitor] .atlas-modes [data-mode=observe]{display:none}
+body[data-visitor] .atlas-help{font-size:9px;margin-top:6px;letter-spacing:.03em}
+body[data-visitor-hidden=true] #app > header,body[data-visitor-hidden=true] #visitor-route-panel,body[data-visitor-hidden=true] .atlas-controls,body[data-visitor-hidden=true] .intro,body[data-visitor-hidden=true] .visitor-routes,body[data-visitor-hidden=true] .woodland-gate-label,body[data-visitor-hidden=true] .architecture-inspection,body[data-visitor-hidden=true] .herb-hint{visibility:hidden;pointer-events:none}
+body[data-visitor-hidden=true] .visitor-hide{opacity:.45}
+.visitor-hide:hover,.visitor-hide:focus-visible{opacity:1!important}
+@media(max-width:700px){
+ body[data-visitor] #app > header{left:16px;right:16px;top:16px;align-items:center}
+ body[data-visitor] .brand span{font-size:17px}body[data-visitor] .brand .compass{width:29px;height:29px}
+ body[data-visitor] #app > header nav{gap:10px;padding:4px 8px;max-width:205px}body[data-visitor] #app > header nav button{font-size:11px}
+ body[data-visitor-menu=true] #app > header nav{position:absolute;right:0;top:0;width:180px;max-width:180px;justify-content:space-around;background:#172823f5}
+ body[data-visitor] #app > header #tour{display:none}body[data-visitor-menu=true] #app > header #tour{display:block}
+ body[data-visitor] .atlas-controls{left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));width:auto;padding:10px 12px}
+ body[data-visitor] .atlas-modes{justify-content:space-between}body[data-visitor] .atlas-modes button{min-height:36px;padding:7px 8px}
+ .visitor-tools{left:16px;bottom:calc(120px + env(safe-area-inset-bottom));gap:5px}.visitor-tools button{font-size:10px;padding:8px 11px;min-height:35px}
+ body[data-visitor] #visitor-route-panel{left:16px;right:16px;bottom:calc(166px + env(safe-area-inset-bottom));max-width:none}
+ body[data-visitor] .intro{bottom:205px!important}body[data-visitor] .intro h1{font-size:33px}
+ body[data-visitor] .architecture-inspection{bottom:calc(164px + env(safe-area-inset-bottom))}
+}
+
+/* V44: first-person entry stays visible; secondary activities remain one click away. */
+body[data-visitor-camera=first-person] .atlas-entry-actions{display:grid;grid-template-columns:1.2fr .7fr 1.2fr 1.1fr;gap:4px;margin-top:10px}
+body[data-visitor-camera=first-person] .atlas-entry-actions button{display:block;min-height:40px;padding:7px 4px;border:1px solid #b8a77c55;font-size:11px;letter-spacing:.02em;white-space:nowrap}
+body[data-visitor-camera=first-person] .atlas-entry-actions button[aria-pressed=true]{background:#cfb98122;border-color:#dfc58b;color:#ffe8b4}
+body[data-visitor-camera=first-person] .atlas-modes{display:flex;justify-content:space-between;gap:5px}
+body[data-visitor-camera=first-person] .atlas-modes>button{flex:1;min-height:36px}
+.atlas-services{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;padding-top:8px;border-top:1px solid #b8a77c44}
+.atlas-services[hidden]{display:none}
+.atlas-services>button{font-size:11px;min-height:36px;padding:7px 10px;border:1px solid #b8a77c44}
+body[data-visitor-camera=first-person][data-atlas-mode=walk] .atlas-reticle{display:block;opacity:.6}
+body[data-visitor-camera=first-person] .atlas-controls button:focus-visible{outline:2px solid #e2c790;outline-offset:2px}
+@media(max-width:700px){
+ body[data-world-shell=true] .atlas-message{left:12px;top:90px;transform:none;width:max-content;max-width:calc(100vw - 198px);box-sizing:border-box;padding:8px 10px}
+ body[data-world-shell=true] .woodland-gate-label{max-width:180px;white-space:normal;word-break:keep-all;box-sizing:border-box}
+ body[data-visitor-camera=first-person] .atlas-controls{max-height:45dvh;overflow-y:auto}
+ body[data-visitor-camera=first-person] .atlas-entry-actions button{min-height:44px}
+ body[data-visitor-camera=first-person] .visitor-tools{bottom:calc(var(--visitor-panel-height,180px) + 28px + env(safe-area-inset-bottom))}
+ body[data-visitor-camera=first-person][data-atlas-mode=walk] .atlas-pad{display:grid;position:fixed;left:16px;bottom:calc(var(--visitor-panel-height,180px) + 76px + env(safe-area-inset-bottom));grid-template-columns:repeat(3,44px);gap:5px;z-index:4}
+ body[data-visitor-camera=first-person] .atlas-pad [data-key=Space],body[data-visitor-camera=first-person] .atlas-pad [data-key=KeyC]{display:none}
+ body[data-visitor-camera=first-person] .architecture-inspection{bottom:calc(var(--visitor-panel-height,180px) + 76px + env(safe-area-inset-bottom))}
+ body[data-visitor-camera=first-person] #visitor-route-panel{bottom:calc(var(--visitor-panel-height,180px) + 76px + env(safe-area-inset-bottom))}
+ body[data-visitor-camera=first-person][data-atlas-mode=walk] .atlas-help{display:block;font-size:10px}
+}
+
+@media(pointer:coarse) and (min-width:701px){
+ body[data-visitor-camera=first-person][data-atlas-mode=walk] .atlas-pad{display:grid;position:fixed;left:22px;bottom:88px;grid-template-columns:repeat(3,44px);gap:5px;z-index:4}
+ body[data-visitor-camera=first-person] .atlas-pad button{height:44px;background:#19323ae6;border:1px solid #d3c1a666;border-radius:6px;touch-action:none;font-size:18px}
+ body[data-visitor-camera=first-person] .atlas-pad [data-key=KeyW]{grid-column:2}
+ body[data-visitor-camera=first-person] .atlas-pad [data-key=KeyA]{grid-column:1;grid-row:2}
+ body[data-visitor-camera=first-person] .atlas-pad [data-key=KeyS]{grid-column:2;grid-row:2}
+ body[data-visitor-camera=first-person] .atlas-pad [data-key=KeyD]{grid-column:3;grid-row:2}
+ body[data-visitor-camera=first-person] .atlas-pad [data-key=ShiftLeft]{grid-column:3;grid-row:1}
+ body[data-visitor-camera=first-person] .atlas-pad [data-key=Space],body[data-visitor-camera=first-person] .atlas-pad [data-key=KeyC]{display:none}
+ body[data-visitor-camera=first-person] .atlas-controls{max-height:48dvh;overflow-y:auto}
+}
+
+@media(max-width:700px){
+ body[data-visitor-camera=first-person] :is(.fgarden-panel,.vtown-panel,.quarter-panel,.star-hall-panel){bottom:calc(var(--visitor-panel-height,180px) + 76px + env(safe-area-inset-bottom));max-height:32dvh}
+}
+@media(pointer:coarse) and (orientation:landscape) and (max-height:500px){
+ body[data-visitor-camera=first-person] .world-minimap{right:12px;top:86px;width:110px}
+ body[data-visitor-camera=first-person] .world-minimap .map-caption{font-size:10px;padding:4px 6px}
+ body[data-visitor-camera=first-person] .world-minimap .map-readout{font-size:9px;padding:5px 6px}
+ body[data-visitor-camera=first-person] .atlas-controls{left:auto;right:140px;bottom:12px;width:min(340px,calc(100vw - 300px));max-height:calc(100dvh - 100px);box-sizing:border-box}
+ body[data-visitor-camera=first-person] .atlas-entry-actions button{min-height:36px;font-size:10px}
+ body[data-visitor-camera=first-person] .visitor-tools{left:16px;bottom:12px}
+ body[data-visitor-camera=first-person] .visitor-tools button:not(.visitor-hide){display:none}
+ body[data-visitor-camera=first-person][data-atlas-mode=walk] .atlas-pad{left:16px;bottom:70px}
+}

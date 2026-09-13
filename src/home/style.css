@@ -1,0 +1,106 @@
+:root{color-scheme:dark;--city-color:#c0a0ed}*{box-sizing:border-box}body{margin:0;overflow:hidden;color:#f1e4c8;background:radial-gradient(ellipse at 45% 40%,#243446 0,#142334 34%,#0b1421 78%);font-family:system-ui,-apple-system,sans-serif}button,a{-webkit-tap-highlight-color:transparent}button{font:inherit;cursor:pointer}a{color:inherit}body:after{content:'';position:fixed;inset:9px;border:1px solid #baa47735;pointer-events:none;z-index:3}.home-stage{position:fixed;inset:0}.home-stage canvas{display:block;touch-action:none}.home-brand{position:fixed;left:35px;top:27px;display:flex;align-items:center;gap:14px;text-decoration:none;font:30px/1 Georgia,serif;letter-spacing:.17em}.home-brand>span{font-size:46px;font-weight:200;color:#c9b78e}.home-brand small{display:block;font:10px/1.4 system-ui,sans-serif;letter-spacing:.23em;color:#a5adb4;margin-top:10px}.home-intro{position:fixed;left:5%;bottom:140px;pointer-events:none;max-width:410px;text-shadow:0 2px 20px #09131f}.home-intro h1{font:400 clamp(36px,4.5vw,65px)/1.3 'Songti SC','Noto Serif SC',serif;letter-spacing:.06em;margin:0 0 14px}.home-intro p{font-size:14px;line-height:1.9;color:#b9c5cc;margin:0 0 25px}.home-enter{display:inline-flex;align-items:center;justify-content:center;gap:35px;padding:14px 26px;background:#101c2be0;border:1px solid #d2bc8e;border-radius:4px;color:#efddaf;box-shadow:0 0 18px #baa47720;pointer-events:auto;text-decoration:none;font-size:16px;min-width:190px;transition:background .2s,box-shadow .2s}.home-enter:hover{background:#263040;box-shadow:0 0 22px #baa47735}.home-enter svg{width:24px;height:24px}.home-enter:disabled{opacity:.5;cursor:wait}.home-status{display:block;margin-top:12px;color:#8da0af;font-size:10px;line-height:1.6}.home-cities{position:fixed;bottom:36px;left:50%;transform:translateX(-50%);display:flex;gap:0;border-top:1px solid #baa47750;width:min(640px,75vw);justify-content:space-between}.home-cities button{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;flex:1;background:none;border:0;color:#97a7b4;padding:20px 5px 0;font-size:12px;white-space:nowrap}.home-cities i{position:absolute;top:-5px;width:9px;height:9px;border:1px solid #bba882;transform:rotate(45deg);background:#101b29}.home-cities small{font:9px Georgia,serif;letter-spacing:.1em;opacity:.65}.home-cities [aria-pressed=true]{color:#f1e4c8}.home-cities [aria-pressed=true] i{background:var(--city-color);box-shadow:0 0 12px var(--city-color);transform:rotate(45deg) scale(1.5)}.home-gesture{position:fixed;right:33px;bottom:35px;color:#738594;font-size:10px;writing-mode:vertical-rl;letter-spacing:.12em}.home-passage{position:fixed;inset:0;pointer-events:none;z-index:50;background:radial-gradient(circle at 50% 44%,transparent 0,var(--city-color) 100%);opacity:0;transition:opacity 1.4s ease-in;mix-blend-mode:screen}body[data-entering=true] .home-passage{opacity:1}body[data-entering=true] .world-toolbar,body[data-entering=true] .world-minimap{pointer-events:none;opacity:.4}button:focus-visible,a:focus-visible{outline:2px solid #86d8e1;outline-offset:5px}
+@media(max-width:700px){body:after{inset:6px}.home-brand{left:18px;top:22px;font-size:17px;gap:6px;letter-spacing:.08em}.home-brand>span{font-size:28px}.home-brand small{font-size:7px;letter-spacing:.06em;margin-top:5px}.home-intro{left:24px;right:24px;bottom:130px;max-width:none}.home-intro h1{font-size:36px;margin-bottom:10px}.home-intro p{font-size:12px;max-width:295px;margin-bottom:16px}.home-enter{font-size:14px;min-width:180px;padding:12px 20px;gap:25px}.home-cities{width:calc(100vw - 38px);bottom:25px}.home-cities button{font-size:10px;padding-top:18px}.home-cities small{font-size:8px}.home-gesture{display:none}.home-status{font-size:9px}.home-stage{bottom:120px;top:-60px}.home-passage{transition-duration:1.4s}}
+@media(prefers-reduced-motion:reduce){.home-passage{transition-duration:.01s}.home-enter{transition:none}}body[data-reduced-transition=true] .home-passage{transition-duration:.01s}
+
+body[data-home-hidden=true] .home-brand,body[data-home-hidden=true] .home-intro,body[data-home-hidden=true] .home-cities,body[data-home-hidden=true] .home-gesture{visibility:hidden;pointer-events:none}
+/* Five-city collection is the default arrival; a single city is an explicit selection. */
+.home-enter[hidden],.home-retry[hidden]{display:none}.home-retry{margin-top:10px;padding:9px 12px;border:1px solid #baa47760;border-radius:3px;background:#142333;color:#e4d4b6;pointer-events:auto}.home-city-labels{position:fixed;inset:0;pointer-events:none}.home-city-labels button{position:absolute;transform:translateX(-50%);pointer-events:auto;border:0;border-bottom:1px solid #baa47735;padding:7px 10px 10px;background:#101b29b0;color:#f1e4c8;white-space:nowrap;border-radius:3px;text-align:center;min-width:132px}.home-city-labels strong{display:block;font:400 17px/1.4 'Songti SC',serif}.home-city-labels small{display:block;font-size:9px;line-height:1.5;color:#93a5b5;margin-top:5px}.home-city-labels button:hover,.home-city-labels button:focus-visible{color:var(--city-color);border-color:var(--city-color);background:#142436}.home-city-labels [data-status=loading]:after,.home-city-labels [data-status=pending]:after{content:'建筑准备中';display:block;font-size:9px;color:#a3aeb4;margin-top:3px}.home-city-labels [data-status=error]:after{content:'点击重试';display:block;font-size:9px;color:#dab884;margin-top:3px}body[data-home-view=city] .home-city-labels{display:none}body[data-home-view=overview] .home-intro{top:120px;bottom:auto;max-width:780px}body[data-home-view=overview] .home-intro h1{font-size:clamp(32px,3.4vw,48px);margin-bottom:10px}body[data-home-view=overview] .home-intro p{font-size:13px;margin-bottom:8px}body[data-home-view=overview] .home-status{font-size:10px;margin-top:5px;color:#8f9eae}body[data-home-view=overview] .home-stage{inset:0}body[data-home-view=overview] .world-minimap{width:185px}body[data-home-view=overview] .home-gesture{display:none}.home-cities{width:min(780px,82vw)}.home-cities [data-city=overview]{--city-color:#d8c28e}.home-cities a{padding:18px 8px;font-size:12px;text-decoration:none}body[data-home-hidden=true] .home-city-labels{visibility:hidden;pointer-events:none}body[data-home-hidden=true] .home-city-labels button{pointer-events:none}
+@media(max-width:700px){body[data-home-view=overview] .home-intro{top:100px;left:23px;right:auto;max-width:185px}body[data-home-view=overview] .home-intro h1{font-size:29px;line-height:1.4;max-width:185px}body[data-home-view=overview] .home-intro p{max-width:170px;font-size:11px;line-height:1.8}body[data-home-view=overview] .home-status{max-width:166px;font-size:9px;line-height:1.6}body[data-home-view=overview] .world-minimap{width:132px}.home-city-labels button{min-width:116px;padding:5px 6px 7px}.home-city-labels strong{font-size:14px}.home-city-labels small{font-size:8px}.home-cities{width:calc(100vw - 30px)}.home-cities button{font-size:9px}.home-city-labels [data-status=loading]:after,.home-city-labels [data-status=pending]:after{font-size:8px}}
+
+.home-city-labels button{background:transparent;border-bottom-color:transparent;text-shadow:0 2px 8px #000}
+
+/* Theme threshold → five-city overview → chosen town. */
+.home-eyebrow,.home-theme-actions,.home-theme-motto{display:none}
+body[data-home-view=theme] .home-stage{inset:0}
+body[data-home-view=theme] .home-intro{top:30%;bottom:auto;left:5%;max-width:47%}
+body[data-home-view=theme] .home-intro h1{white-space:pre-line;font-size:clamp(36px,4.4vw,72px);line-height:1.45;letter-spacing:.025em;margin:0 0 23px}
+body[data-home-view=theme] .home-intro p{max-width:410px;font-size:13px;line-height:2.1;color:#aab9c5;margin-bottom:29px}
+body[data-home-view=theme] .home-eyebrow{display:block;font:9px/1.4 Georgia,serif;letter-spacing:.4em;color:#baac8e;margin-bottom:19px}
+body[data-home-view=theme] .home-theme-actions{display:flex;align-items:center;gap:24px;pointer-events:auto}
+.home-unfold{display:inline-flex;align-items:center;gap:32px;border:1px solid #cdb588;background:linear-gradient(115deg,#b4a0791f,#152535);color:#efdfbc;padding:15px 26px;border-radius:3px;font:18px 'Songti SC',serif;box-shadow:0 0 28px #a7cbd20c}
+.home-unfold:hover{background:#30404b}.home-unfold svg{width:23px;height:23px}.home-about{border:0;border-bottom:1px solid #baa47765;background:none;color:#baac90;font-size:12px;padding:7px 0}
+body[data-home-view=theme] .home-city-labels,body[data-home-view=theme] .home-status,body[data-home-view=theme] .home-gesture,body[data-home-view=theme] .home-cities [data-city=overview]{display:none}
+body[data-home-view=theme] .home-cities{bottom:65px;width:min(730px,82vw)}
+body[data-home-view=theme] .home-cities button{padding-top:20px;color:#cabda4;font:13px 'Songti SC',serif;letter-spacing:.12em}
+body[data-home-view=theme] .home-cities small{display:none}
+body[data-home-view=theme] .home-cities i{width:5px;height:5px;top:-3px;background:var(--city-color);border:0}
+body[data-home-view=theme] .home-theme-motto{display:block;position:fixed;bottom:20px;width:100%;text-align:center;color:#7f8c99;font:10px 'Songti SC',serif;letter-spacing:.3em;pointer-events:none}
+body[data-home-view=theme] .world-minimap{width:156px}
+body[data-home-hidden=true] .home-theme-motto{visibility:hidden}
+@media(max-width:700px){
+ body[data-home-view=theme] .home-intro{top:53%;left:25px;right:25px;max-width:none}
+ body[data-home-view=theme] .home-intro h1{font-size:32px;line-height:1.4;margin-bottom:15px}
+ body[data-home-view=theme] .home-eyebrow{font-size:7px;margin-bottom:12px;letter-spacing:.27em}
+ body[data-home-view=theme] .home-intro p{font-size:11px;line-height:1.9;max-width:335px;margin-bottom:20px}
+ body[data-home-view=theme] .home-theme-actions{gap:23px}
+ .home-unfold{font-size:15px;padding:12px 22px;gap:24px}.home-about{font-size:11px}
+ body[data-home-view=theme] .world-minimap{width:108px}
+ body[data-home-view=theme] .home-cities{bottom:51px;width:calc(100vw - 42px)}
+ body[data-home-view=theme] .home-cities button{font-size:9px;letter-spacing:0;padding-top:15px}
+ body[data-home-view=theme] .home-theme-motto{bottom:17px;font-size:8px}
+}
+@media(max-height:740px) and (max-width:700px){
+ body[data-home-view=theme] .home-intro{top:49%}
+ body[data-home-view=theme] .home-intro h1{font-size:26px;margin-bottom:9px}
+ body[data-home-view=theme] .home-eyebrow{display:none}
+ body[data-home-view=theme] .home-intro p{font-size:10px;line-height:1.65;margin-bottom:13px}
+}
+body[data-home-view=fallback] .home-theme-actions{display:none}
+
+/* V42: match the approved open, brass-on-night composition. */
+body[data-home-view=theme]:after{border:0}
+body[data-home-view=theme] .home-brand{top:31px;left:3%;font-size:31px;font-weight:400;letter-spacing:.38em;gap:18px}
+body[data-home-view=theme] .home-brand small{font:7px Georgia,serif;letter-spacing:.5em;color:#baa477;margin-top:12px}
+body[data-home-view=theme] .home-brand>span{font-size:44px;letter-spacing:0}
+body[data-home-view=theme] .home-intro{top:25%;left:4.8%;max-width:43%}
+body[data-home-view=theme] .home-intro h1{font-size:clamp(38px,5.25vw,86px);line-height:1.27;font-weight:400;margin-bottom:31px;letter-spacing:.025em}
+body[data-home-view=theme] .home-intro p{max-width:580px;font-size:clamp(12px,1.35vw,20px);line-height:1.9;color:#ccd2d5;margin-bottom:37px}
+body[data-home-view=theme] .home-eyebrow{display:none}
+body[data-home-view=theme] .home-theme-actions{display:flex;flex-direction:column;align-items:flex-start;gap:20px}
+body[data-home-view=theme] .home-unfold{min-width:225px;padding:15px 28px;justify-content:center;font-size:22px;border-radius:2px;background:#101a2299;gap:25px}
+body[data-home-view=theme] .home-about{font:17px 'Songti SC',serif;letter-spacing:.08em}
+body[data-home-view=theme] .world-toolbar{background:none;backdrop-filter:none;border:0;gap:13px;right:2.4%;top:23px}
+body[data-home-view=theme] .world-toolbar>a,body[data-home-view=theme] .world-toolbar>button{min-width:42px;color:#ddcba6}
+body[data-home-view=theme] .world-toolbar svg{width:25px;height:25px;stroke-width:1.35}
+body[data-home-view=theme] .world-toolbar span{display:none}
+body[data-home-view=theme] .world-minimap{top:100px;right:2.7%;width:172px;background:#0b17216b;border-color:#bba77e35;box-shadow:none}
+body[data-home-view=theme] .home-cities{bottom:68px;width:min(800px,72vw);border-top:0}
+body[data-home-view=theme] .home-cities:before,body[data-home-view=theme] .home-cities:after{content:'';position:absolute;top:50%;width:20vw;height:1px;background:#bba77e77}
+body[data-home-view=theme] .home-cities:before{right:calc(100% + 25px)}body[data-home-view=theme] .home-cities:after{left:calc(100% + 25px)}
+body[data-home-view=theme] .home-cities button{padding:8px 5px;font-size:16px;letter-spacing:.1em}
+body[data-home-view=theme] .home-cities i{display:none}
+body[data-home-view=theme] .home-theme-motto{bottom:27px;color:#bbac90;font-size:12px}
+@media(max-width:700px){
+ body[data-home-view=theme] .home-brand{top:24px;left:19px;font-size:17px;letter-spacing:.16em;gap:8px}
+ body[data-home-view=theme] .home-brand small{font-size:5px;letter-spacing:.13em;margin-top:7px}
+ body[data-home-view=theme] .home-brand>span{font-size:29px}
+ body[data-home-view=theme] .world-toolbar{right:12px;top:17px;gap:0;padding:0}
+ body[data-home-view=theme] .world-toolbar>a,body[data-home-view=theme] .world-toolbar>button{min-width:31px;height:32px}
+ body[data-home-view=theme] .world-toolbar svg{width:20px;height:20px}
+ body[data-home-view=theme] .world-minimap{top:77px;right:12px;width:108px}
+ body[data-home-view=theme] .home-intro{top:53%;left:25px;right:25px;max-width:none}
+ body[data-home-view=theme] .home-intro h1{font-size:32px;line-height:1.35;margin-bottom:17px}
+ body[data-home-view=theme] .home-intro p{font-size:11px;line-height:1.8;margin-bottom:21px}
+ body[data-home-view=theme] .home-theme-actions{flex-direction:row;align-items:center;gap:23px}
+ body[data-home-view=theme] .home-unfold{min-width:155px;padding:12px 20px;font-size:16px;gap:18px}
+ body[data-home-view=theme] .home-about{font-size:11px;letter-spacing:0}
+ body[data-home-view=theme] .home-cities{bottom:45px;width:calc(100vw - 38px)}
+ body[data-home-view=theme] .home-cities button{font-size:10px;letter-spacing:0}
+ body[data-home-view=theme] .home-cities:before,body[data-home-view=theme] .home-cities:after{display:none}
+ body[data-home-view=theme] .home-theme-motto{bottom:15px;font-size:8px}
+}
+@media(max-height:740px) and (max-width:700px){body[data-home-view=theme] .home-intro{top:49%}body[data-home-view=theme] .home-intro h1{font-size:26px;margin-bottom:10px}body[data-home-view=theme] .home-intro p{font-size:10px;line-height:1.65;margin-bottom:13px}}
+.home-compass{width:46px;height:46px;display:block}.brand-theme{display:none!important}body[data-home-view=theme] .brand-theme{display:block!important}body[data-home-view=theme] .brand-worlds{display:none}.home-brand small{letter-spacing:.23em}@media(max-width:700px){.home-compass{width:30px;height:30px}}
+body[data-home-view=theme] .world-minimap{background:none;border:0;overflow:visible}
+body[data-home-view=theme] .world-minimap .map-caption{padding:0;justify-content:flex-end;height:23px}
+body[data-home-view=theme] .world-minimap .map-caption strong{display:none}
+body[data-home-view=theme] .world-minimap .map-surface{background:none;border:1px solid #bda77730;border-radius:50%;overflow:visible}
+body[data-home-view=theme] .world-minimap .map-terrain{opacity:.8}
+body[data-home-view=theme] .world-minimap .map-north{font:9px Georgia,serif;top:-8px;left:49%;color:#c4ac7a}
+body[data-home-view=theme] .world-minimap .map-poi span{display:none}
+body[data-home-view=theme] .world-minimap .map-poi:hover span,body[data-home-view=theme] .world-minimap .map-poi:focus-visible span{display:block}
+body[data-home-view=theme] .world-minimap .map-poi i{background:#192839;border:1px solid #cab58a;width:5px;height:5px}
+body[data-home-view=theme] .world-minimap .map-readout{font-size:0;text-align:center;color:#c4b395;padding-top:14px}
+body[data-home-view=theme] .world-minimap .map-readout:after{content:'FIVE CITIES\A ONE WORLD';white-space:pre;font:9px/1.8 Georgia,serif;letter-spacing:.25em}
+@media(max-width:700px){body[data-home-view=theme] .world-minimap .map-readout:after{font-size:6px;letter-spacing:.15em}}
+@media(max-width:700px){body[data-home-view=theme] .home-stage:after{content:'';position:absolute;inset:0;background:linear-gradient(transparent 35%,#07142020 46%,#071420d9 57%,#071420ed 75%,#071420b0);pointer-events:none}}

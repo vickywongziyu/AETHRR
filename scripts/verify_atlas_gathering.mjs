@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {createGatheringStore,REGROW_MS,GATHERING_KEY} from '../src/atlas/gathering-store.js';
+const memory=new Map(),storage={getItem:k=>memory.get(k),setItem:(k,v)=>memory.set(k,v)};let now=1000;
+const plant={id:'flora-v1/watercourt/flower/1',type:'watercourt-flower'};
+const first=createGatheringStore(storage,()=>now);assert(first.collect(plant));assert.equal(first.total,1);assert.equal(first.collect(plant),null);
+const reloaded=createGatheringStore(storage,()=>now);assert.equal(reloaded.total,1);assert(!reloaded.available(plant.id));now+=REGROW_MS+1;assert(reloaded.available(plant.id));assert(reloaded.collect(plant));assert.equal(reloaded.total,2);
+assert.equal(reloaded.collect({id:'unknown',type:'unknown'}),null);
+memory.set(GATHERING_KEY,'invalid JSON');assert.equal(createGatheringStore(storage,()=>now).total,0);
+memory.set(GATHERING_KEY,JSON.stringify({version:1,items:{'watercourt-flower':-5,unknown:10,'aether-grass':3.4},picked:{}}));assert.equal(createGatheringStore(storage,()=>now).total,0);
+const privateStore=createGatheringStore({getItem:()=>null,setItem:()=>{throw new Error('Blocked');}},()=>now);assert.equal(privateStore.collect(plant).saved,false);assert.equal(privateStore.total,1);
+console.log('GATHERING_PASS: collect once, persist/reload, regrow, reject invalid data, keep a session-only inventory if storage is blocked.');
