@@ -3,7 +3,7 @@
   "framework": "vite",
   "buildCommand": "npm run build:worlds",
   "outputDirectory": "dist-worlds",
-  "rewrites": [
-    { "source": "/", "destination": "/home.html" }
+  "redirects": [
+    { "source": "/", "destination": "/home.html", "permanent": false }
   ]
 }

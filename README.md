@@ -35,7 +35,7 @@ npm run preview -- --port 5177
 
 ## Vercel 部署
 
-仓库根目录的 `vercel.json` 已指定构建命令 `npm run build:worlds` 和输出目录 `dist-worlds`，并将根路径 `/` 映射至五城主题首页 `/home.html`。
+仓库根目录的 `vercel.json` 已指定构建命令 `npm run build:worlds` 和输出目录 `dist-worlds`。根路径 `/` 使用临时重定向进入五城主题首页 `/home.html`，避免默认 `index.html` 将访客带入旧版独立森林。原有 HTML 入口保持可访问。
 
 导入此仓库时，Root Directory 使用仓库根目录。若在控制台手动填写构建设置，Output Directory 应为 `dist-worlds`，不是 Vite 默认的 `dist`。重新部署时使用包含该配置文件的最新提交；无需提交本地产物目录。
 
