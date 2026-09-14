@@ -48,7 +48,7 @@ export async function createAtlas(world,{sources,time,sun,hillSun,hemisphere,map
  const vegetation=createVegetationClearance();for(const [i,root] of sources.entries()){onProgress(.60+i*.04,'正在准备'+regions[i].name+'的道路与碰撞');await paintLoading();nav.add(root);if(CHARACTER_ENABLED)vegetation.add(root);}
  onProgress(.69,'正在准备地图与城镇互动');await paintLoading();
  const canvas=renderer.domElement,keys=new Set(),position=new T.Vector3(),forward=new T.Vector3(),right=new T.Vector3(),velocity=new T.Vector3(),next=new T.Vector3(),euler=new T.Euler(0,0,0,'YXZ');
- const originalFog=scene.fog.color.clone(),purple=new T.Color('#4d355c');let mode='observe',yaw=0,pitch=0,drag=null,autopilot=null,current='aether',blocked=false,disposed=false,mapFocus=null;
+ const originalFog=scene.fog.color.clone(),purple=new T.Color('#4d355c');let walkTarget=null;let mode='observe',yaw=0,pitch=0,drag=null,autopilot=null,current='aether',blocked=false,disposed=false,mapFocus=null;
  let traveler=null,characterPromise=null,verticalSpeed=0,flightCameraBias=0,manualCameraUntil=0;
  const outdoorNear=camera.near;
  const eye=new T.Vector3(),aim=new T.Vector3(),desiredCamera=new T.Vector3(),cameraDirection=new T.Vector3(),beforeMove=new T.Vector3(),facing=new T.Vector3(),cameraDistance=4.6;
@@ -83,9 +83,30 @@ export async function createAtlas(world,{sources,time,sun,hillSun,hemisphere,map
  for(const [label,action] of [['市集商店',()=>market.showDirectory()],['采集产地',()=>resources.showDirectory()],['工坊与任务',()=>town.showLedger()],['我的客房',()=>housing.open()]]){const b=document.createElement('button');b.textContent=label;b.onclick=()=>{if(isBlocked())return;services.hidden=true;serviceToggle.setAttribute('aria-expanded','false');world.visitor?.enter();action();};services.append(b);}
  serviceToggle.onclick=()=>{services.hidden=!services.hidden;serviceToggle.setAttribute('aria-expanded',String(!services.hidden));};
  const panelSize=new ResizeObserver(()=>document.body.style.setProperty('--visitor-panel-height',ui.offsetHeight+'px'));panelSize.observe(ui);
- ui.querySelector('.atlas-help').textContent='自由探索 · 从城镇入口步行；城镇导览 · 点选建筑与室内';
+ ui.querySelector('.atlas-help').textContent='方向键 / WASD 开始步行 · 右键点地面前往 · 左键拖动环顾';
+ const walkMarker=new T.Mesh(new T.RingGeometry(.19,.28,40),new T.MeshBasicMaterial({color:'#f3d99c',transparent:true,opacity:.85,side:T.DoubleSide,depthWrite:false}));
+ walkMarker.rotation.x=-Math.PI/2;walkMarker.visible=false;walkMarker.userData.noCollision=true;scene.add(walkMarker);
+ const walkRay=new T.Raycaster(),walkPointer=new T.Vector2();
+ function fixedView(){return !!buildings.selected||quarter.ferry?.following||document.body.dataset.atlasInspecting==='true';}
+ function startWalking(){return setMode('walk',{preserve:Math.hypot(camera.position.x-position.x,camera.position.z-position.z)<3&&Math.abs(camera.position.y-position.y-EYE_HEIGHT)<1});}
+ function readyToWalk(){return !disposed&&!isBlocked()&&!fixedView()&&!document.querySelector('.loading:not(.done)');}
+ function rightWalk(e){
+  if(e.button!==2||e.ctrlKey||e.metaKey||!readyToWalk())return;
+  e.preventDefault();e.stopImmediatePropagation();
+  const rect=canvas.getBoundingClientRect();walkPointer.set((e.clientX-rect.left)/rect.width*2-1,1-(e.clientY-rect.top)/rect.height*2);walkRay.setFromCamera(walkPointer,camera);nav.sync();
+  const target=nav.pickGround(walkRay.ray,60);
+  if(!target||!nav.clearBody(target)){stopWalking();say('请右键点选附近可站立的地面。');return;}
+  if(mode!=='walk'&&!startWalking())return;
+  clearInput();autopilot=null;
+  if(Math.hypot(target.x-position.x,target.z-position.z)>40){say('目的地较远，请先选择近处地面。');return;}
+  walkTarget=target;walkMarker.position.copy(target).y+=.035;walkMarker.visible=true;
+  canvas.focus({preventScroll:true});say('正在步行前往 · 左键或方向键可接管');
+ }
+ const walkContext=e=>{if(readyToWalk())e.preventDefault();};
+ canvas.addEventListener('pointerdown',rightWalk,true);canvas.addEventListener('contextmenu',walkContext);
  let messageTimer;function say(text){message.textContent=text;clearTimeout(messageTimer);messageTimer=setTimeout(()=>message.textContent='',4000);}
- function clearInput(){keys.clear();if(drag&&canvas.hasPointerCapture(drag[4]))canvas.releasePointerCapture(drag[4]);drag=null;}
+ function stopWalking(){walkTarget=null;walkMarker.visible=false;}
+ function clearInput(){stopWalking();keys.clear();if(drag&&canvas.hasPointerCapture(drag[4]))canvas.releasePointerCapture(drag[4]);drag=null;}
  function isBlocked(){return transition.busy||document.body.dataset.starObserving==='true'||document.body.dataset.resourceBusy==='true'||document.body.dataset.townBusy==='true'||document.body.dataset.homeEditing==='true'||!!document.querySelector('dialog[open]');}
  function nearest(p){return regions.reduce((a,r)=>Math.hypot(p.x-r.center[0],p.z-r.center[2])<Math.hypot(p.x-a.center[0],p.z-a.center[2])?r:a,regions[0]);}
  function orient(target){camera.lookAt(new T.Vector3(...target));euler.setFromQuaternion(camera.quaternion);yaw=euler.y;pitch=euler.x;}
@@ -151,8 +172,8 @@ export async function createAtlas(world,{sources,time,sun,hillSun,hemisphere,map
   }else {world.cancelCameraMotion({preserveExploration:true});const damping=controls.enableDamping;controls.enableDamping=false;controls.update();controls.enableDamping=damping;controls.enabled=false;}
   mode=value;camera.near=(mode==='walk'&&FIRST_PERSON) ? .08 : outdoorNear;camera.updateProjectionMatrix();gateButton.hidden=true;verticalSpeed=0;if(mode!=='fly')flightCameraBias=0;document.body.dataset.atlasMode=mode;
   ui.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
-  ui.querySelector('.atlas-help').textContent=mode==='walk'&&matchMedia('(pointer: coarse)').matches?'左侧方向按钮移动 · 单指拖动环顾 · 地图选择目的地':mode==='observe'?'拖动环顾 · 点选建筑与草木 · 自由探索从入口出发':mode==='walk'?'WASD / 方向键移动 · 拖动环顾 · Shift 快行 · B 行囊 · Esc 观景':'WASD 飞行 · 空格上升 / C 下降 · Shift 加速 · 拖动环顾 · M 地图';
-  canvas.setAttribute('aria-label',mode==='walk'?'第一人称探索：WASD 或方向键移动，拖动环顾，Escape 返回观景':'三维城镇：拖动环顾，滚轮缩放，点击建筑和草木');
+  ui.querySelector('.atlas-help').textContent=mode==='walk'&&matchMedia('(pointer: coarse)').matches?'左侧方向按钮移动 · 单指拖动环顾 · 地图选择目的地':mode==='observe'?'方向键 / WASD 开始步行 · 右键点地面前往 · 左键拖动环顾':mode==='walk'?'WASD / 方向键移动 · 右键点地面行走 · 左键拖动环顾 · Shift 快行 · Esc 停止/观景':'WASD 飞行 · 空格上升 / C 下降 · Shift 加速 · 拖动环顾 · M 地图';
+  canvas.setAttribute('aria-label',mode==='walk'?'第一人称探索：WASD 或方向键移动，右键点击地面行走，左键拖动环顾，Escape 停止或返回观景':'三维城镇：拖动环顾，滚轮缩放，点击建筑和草木');
   syncTraveler(0,false,false,true);
   vegetation.update(mode!=='observe',position,camera.position,aim);
   if(value!=='observe'){followCamera(0,true);canvas.focus({preventScroll:true});}return true;
@@ -206,19 +227,19 @@ export async function createAtlas(world,{sources,time,sun,hillSun,hemisphere,map
  map.querySelectorAll('[data-map-region]').forEach(b=>{const select=()=>{map.querySelectorAll('[data-region-card]').forEach(c=>c.classList.toggle('selected',c.dataset.regionCard===b.dataset.mapRegion));map.querySelector(`[data-region-card="${b.dataset.mapRegion}"]`).scrollIntoView({block:'nearest',behavior:'smooth'});};b.onclick=select;b.onkeydown=e=>{if(e.key==='Enter'||e.code==='Space'){e.preventDefault();select();}};});
  document.querySelector('[data-panel="worlds"]').onclick=openMap;function useNearbyGate(){const g=gates.find(g=>g.group.position.distanceTo(position)<4);if(g?.run)g.run();else openMap();}gateButton.onclick=useNearbyGate;
  const movement=new Set(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowLeft','ArrowDown','ArrowRight','Space','KeyC','ShiftLeft','ShiftRight']);
- function keyDown(e){if(e.ctrlKey||e.metaKey||e.altKey||/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)||isBlocked())return;
+ function keyDown(e){if(e.ctrlKey||e.metaKey||e.altKey||/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)||e.target.isContentEditable||isBlocked())return;
   if(e.code==='KeyM'){e.preventDefault();e.stopImmediatePropagation();openMap();return;}
-  if(mode==='observe')return;
-  if(movement.has(e.code)){e.preventDefault();e.stopImmediatePropagation();keys.add(e.code);autopilot=null;}
-  if(e.code==='Escape'){e.preventDefault();e.stopImmediatePropagation();setMode('observe');}
+  if(mode==='observe'){if(!/^(Key[WASD]|Arrow(Up|Down|Left|Right))$/.test(e.code)||!readyToWalk())return;e.preventDefault();e.stopImmediatePropagation();if(!startWalking())return;}
+  if(movement.has(e.code)){e.preventDefault();e.stopImmediatePropagation();keys.add(e.code);autopilot=null;if(!e.code.startsWith('Shift'))stopWalking();}
+  if(e.code==='Escape'){e.preventDefault();e.stopImmediatePropagation();if(walkTarget)stopWalking();else setMode('observe');}
   if(e.code==='KeyF'&&CHARACTER_ENABLED&&!e.repeat){e.preventDefault();e.stopImmediatePropagation();setMode(mode==='fly'?'walk':'fly');}
   if(e.code==='KeyE'&&!gateButton.hidden){e.preventDefault();e.stopImmediatePropagation();useNearbyGate();}
  }
  const keyUp=e=>keys.delete(e.code);window.addEventListener('keydown',keyDown,true);window.addEventListener('keyup',keyUp,true);window.addEventListener('blur',clearInput);document.addEventListener('visibilitychange',clearInput);
- function down(e){if(mode==='observe'||isBlocked()||e.button!==0||drag)return;drag=[e.clientX,e.clientY,yaw,pitch,e.pointerId];canvas.setPointerCapture(e.pointerId);canvas.focus({preventScroll:true});}
+ function down(e){if(e.button===0)stopWalking();if(mode==='observe'||isBlocked()||e.button!==0||drag)return;drag=[e.clientX,e.clientY,yaw,pitch,e.pointerId];canvas.setPointerCapture(e.pointerId);canvas.focus({preventScroll:true});}
  function move(e){if(!drag||drag[4]!==e.pointerId||mode==='observe'||isBlocked())return;yaw=drag[2]-(e.clientX-drag[0])*.003;pitch=T.MathUtils.clamp(drag[3]-(e.clientY-drag[1])*.003,-1.35,1.35);manualCameraUntil=performance.now()+1600;}
  const release=e=>{if(!drag||drag[4]!==e.pointerId)return;if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);drag=null;};canvas.addEventListener('pointerdown',down);canvas.addEventListener('pointermove',move);canvas.addEventListener('pointerup',release);canvas.addEventListener('pointercancel',release);
- pad.querySelectorAll('button').forEach(b=>{b.onpointerdown=e=>{e.preventDefault();if(mode==='observe'||isBlocked())return;keys.add(b.dataset.key);autopilot=null;b.setPointerCapture(e.pointerId);};b.onpointerup=b.onpointercancel=b.onlostpointercapture=()=>keys.delete(b.dataset.key);});
+ pad.querySelectorAll('button').forEach(b=>{b.onpointerdown=e=>{e.preventDefault();if(mode==='observe'||isBlocked())return;stopWalking();keys.add(b.dataset.key);autopilot=null;b.setPointerCapture(e.pointerId);};b.onpointerup=b.onpointercancel=b.onlostpointercapture=()=>keys.delete(b.dataset.key);});
  for(const r of regions.filter(r=>!r.asset)){prepareLanding(r);const root=sources[r.id==='aether'?0:1];gathering.add(r,root);environment.add(r,root);resources.add(r,root);updateCard(r);}
  // Public ready retains full-world QA compatibility; normal visits load only their destination.
  const readyFor=id=>{const r=regions.find(r=>r.id===id);return r?.asset&&r.status!=='ready'?load(r):Promise.resolve();};
@@ -242,7 +263,12 @@ export async function createAtlas(world,{sources,time,sun,hillSun,hemisphere,map
   if(disposed||mode==='observe')return;dt=Math.min(dt,.05);nav.sync();beforeMove.copy(position);
   if(isBlocked()||document.hidden){clearInput();syncTraveler(0);return;}
   const running=keys.has('ShiftLeft')||keys.has('ShiftRight');
-  if(autopilot){
+  if(walkTarget&&mode==='walk'){
+   const dx=walkTarget.x-position.x,dz=walkTarget.z-position.z,distance=Math.hypot(dx,dz),step=Math.min(distance,(running?3.6:2.2)*dt);
+   if(distance<.13)stopWalking();
+   else if(!nav.walk(position,dx/distance*step,dz/distance*step)){blocked=true;stopWalking();say('前方有障碍或落差，已停下。请点选另一处地面绕行。');}
+   else{blocked=false;walkMarker.position.y=(nav.height(walkTarget.x,walkTarget.z,walkTarget.y+.8,walkTarget.y-.8)??walkTarget.y)+.035;}
+  }else if(autopilot){
    eye.copy(position).y+=1.65;
    const target=autopilot.points[autopilot.index],step=40*dt,d=target.distanceTo(eye);
    next.copy(eye).lerp(target,Math.min(1,step/Math.max(d,.0001)));
@@ -270,6 +296,7 @@ export async function createAtlas(world,{sources,time,sun,hillSun,hemisphere,map
   stateTick+=dt;if(stateTick>.15){stateTick=0;ui.dataset.blocked=String(blocked);ui.dataset.obstacle=nav.lastObstacle;const r=nearest(position);current=r.id;ui.querySelector('.atlas-location span').textContent=r.name;ui.style.setProperty('--region-color',r.color);const nearbyGate=gates.find(g=>g.group.position.distanceTo(position)<4);gateButton.hidden=!nearbyGate;gateButton.textContent=nearbyGate?.run?'E · '+nearbyGate.label:'E · 打开光门地图';}
  }
  function beforeRender(seconds){
+  if(mode==='observe'){const hint=buildings.inside?'室内：方向键或拖动环顾 · 点击自由探索返回城镇步行':fixedView()?'当前为近观视角 · 拖动环顾 · 点击自由探索开始步行':'方向键 / WASD 开始步行 · 右键点地面前往 · 左键拖动环顾';const help=ui.querySelector('.atlas-help');if(help.textContent!==hint)help.textContent=hint;}
   nav.sync();buildings.update();portalPassage.update();gardenGate.update(seconds);
   const r=nearest(camera.position),forest=regions[2],fd=Math.hypot(camera.position.x-forest.center[0],camera.position.z-forest.center[2]),purpleWeight=1-T.MathUtils.smoothstep(fd,41,132);
   if(document.body.dataset.atlasRegion!==r.id)document.body.dataset.atlasRegion=r.id;
@@ -286,5 +313,5 @@ export async function createAtlas(world,{sources,time,sun,hillSun,hemisphere,map
   const shadowNow=performance.now()/1000;
   if(shadowNow-shadowTime>.4){for(const lamp of [sun,hillSun,light])lamp.shadow.needsUpdate=lamp.intensity>.04;renderer.shadowMap.needsUpdate=true;shadowTime=shadowNow;}
  }
- return {get ready(){return allReady??=Promise.all([...regions.filter(r=>r.asset).map(r=>readyFor(r.id)),...(CHARACTER_ENABLED?[loadCharacter()]:[])]);},readyFor,nav,regions,paths,gates,gathering,environment,settlements,geology,details,refraction,buildings,discoveries,town,market,housing,quarter,valleyTown,forestGarden,starHall,resources,transition,gardenGate,portalWindows,removedBridgeTriangles,position,setMode,travel,openMap,update,beforeRender,get mode(){return mode;},get active(){return mode!=='observe';},stats:()=>({mode,character:ui.dataset.character,animation:traveler?.animation,region:current,position:position.toArray(),blocked,autopilot:!!autopilot,regions:regions.map(r=>({id:r.id,status:r.status,landing:r.landing?.toArray()})),paths:paths.length,removedBridgeTriangles,navigation:nav.stats()}),dispose(){disposed=true;panelSize.disconnect();starHall.dispose();resources.dispose();valleyTown.dispose();forestGarden.dispose();quarter.dispose();portalPassage.dispose();portalWindows.dispose();housing.dispose();market.dispose();town.dispose();discoveries.dispose();refraction.dispose();buildings.dispose();details.dispose();settlements.dispose();geology.dispose();gathering.dispose();environment.dispose();transition.dispose();gardenGate.dispose();traveler?.dispose();clearInput();clearTimeout(messageTimer);[ui,reticle,message,map,pad,gateButton].forEach(el=>el.remove());window.removeEventListener('keydown',keyDown,true);window.removeEventListener('keyup',keyUp,true);window.removeEventListener('blur',clearInput);document.removeEventListener('visibilitychange',clearInput);canvas.removeEventListener('pointerdown',down);canvas.removeEventListener('pointermove',move);canvas.removeEventListener('pointerup',release);canvas.removeEventListener('pointercancel',release);}};
+ return {get ready(){return allReady??=Promise.all([...regions.filter(r=>r.asset).map(r=>readyFor(r.id)),...(CHARACTER_ENABLED?[loadCharacter()]:[])]);},readyFor,nav,regions,paths,gates,gathering,environment,settlements,geology,details,refraction,buildings,discoveries,town,market,housing,quarter,valleyTown,forestGarden,starHall,resources,transition,gardenGate,portalWindows,removedBridgeTriangles,position,setMode,travel,openMap,update,beforeRender,get mode(){return mode;},get active(){return mode!=='observe';},stats:()=>({mode,character:ui.dataset.character,animation:traveler?.animation,region:current,position:position.toArray(),blocked,walkTarget:walkTarget?.toArray()||null,autopilot:!!autopilot,regions:regions.map(r=>({id:r.id,status:r.status,landing:r.landing?.toArray()})),paths:paths.length,removedBridgeTriangles,navigation:nav.stats()}),dispose(){disposed=true;canvas.removeEventListener('pointerdown',rightWalk,true);canvas.removeEventListener('contextmenu',walkContext);walkMarker.removeFromParent();walkMarker.geometry.dispose();walkMarker.material.dispose();panelSize.disconnect();starHall.dispose();resources.dispose();valleyTown.dispose();forestGarden.dispose();quarter.dispose();portalPassage.dispose();portalWindows.dispose();housing.dispose();market.dispose();town.dispose();discoveries.dispose();refraction.dispose();buildings.dispose();details.dispose();settlements.dispose();geology.dispose();gathering.dispose();environment.dispose();transition.dispose();gardenGate.dispose();traveler?.dispose();clearInput();clearTimeout(messageTimer);[ui,reticle,message,map,pad,gateButton].forEach(el=>el.remove());window.removeEventListener('keydown',keyDown,true);window.removeEventListener('keyup',keyUp,true);window.removeEventListener('blur',clearInput);document.removeEventListener('visibilitychange',clearInput);canvas.removeEventListener('pointerdown',down);canvas.removeEventListener('pointermove',move);canvas.removeEventListener('pointerup',release);canvas.removeEventListener('pointercancel',release);}};
 }

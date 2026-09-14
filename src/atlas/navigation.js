@@ -68,6 +68,22 @@ export function createNavigation(){
   triangle.set(a,b,c);
   return Math.min(triangle.closestPointToPoint(from,nearPoint).distanceToSquared(from),triangle.closestPointToPoint(to,nearPoint).distanceToSquared(to),segmentDistanceSq(from,to,a,b),segmentDistanceSq(from,to,b,c),segmentDistanceSq(from,to,c,a));
  }
+ // Pick the closest solid triangle, including walls that occlude the ground.
+ // Reuse the spatial index and floating offsets instead of raycasting all scenery.
+ function pickGround(inputRay,maxDistance=60){
+  const end=inputRay.at(maxDistance,new T.Vector3()),stamp=++query;let best=maxDistance,result=null;
+  const minY=Math.min(inputRay.origin.y,end.y),maxY=Math.max(inputRay.origin.y,end.y);
+  for(let x=Math.floor(Math.min(inputRay.origin.x,end.x)/size);x<=Math.floor(Math.max(inputRay.origin.x,end.x)/size);x++)for(let z=Math.floor(Math.min(inputRay.origin.z,end.z)/size);z<=Math.floor(Math.max(inputRay.origin.z,end.z)/size);z++){
+   const list=cells.get(x+','+z);
+   for(let i=0;i<(list?.length||0);i+=2){const s=sets[list.data[i]],k=list.data[i+1],j=k*3;if(s.visited[k]===stamp)continue;s.visited[k]=stamp;if(s.data[j+1]+s.dy>maxY||s.data[j+2]+s.dy<minY)continue;
+    corners(s,k);a.y+=s.dy;b.y+=s.dy;c.y+=s.dy;
+    if(inputRay.intersectTriangle(a,b,c,false,hit)){const distance=hit.distanceTo(inputRay.origin);if(distance<best){best=distance;result={point:hit.clone(),walkable:s.data[j]>=.57};}}
+   }
+  }
+  heightRay.ray.copy(inputRay);heightRay.near=0;heightRay.far=best;
+  for(const mesh of dynamic){mesh.updateWorldMatrix(true,false);for(const h of heightRay.intersectObject(mesh,false)){if(h.distance>=best)continue;best=h.distance;heightNormalMatrix.getNormalMatrix(mesh.matrixWorld);result={point:h.point.clone(),walkable:!!mesh.userData.navWalkable&&!!h.face&&heightNormal.copy(h.face.normal).applyMatrix3(heightNormalMatrix).normalize().y>=.57};}}
+  return result?.walkable?result.point:null;
+ }
  function obstructed(from,to,radius=.22,groundY=null,ignoreDynamic=null){
   direction.subVectors(to,from);const lenSq=direction.lengthSq();if(lenSq>1e-12)direction.normalize();else direction.set(0,1,0);ray.set(from,direction);
   const xMin=Math.min(from.x,to.x)-radius,xMax=Math.max(from.x,to.x)+radius,zMin=Math.min(from.z,to.z)-radius,zMax=Math.max(from.z,to.z)+radius,yMin=Math.min(from.y,to.y)-radius,yMax=Math.max(from.y,to.y)+radius;
@@ -137,5 +153,5 @@ export function createNavigation(){
    if(exits>=3){score=val;best=candidate;}
   }return best;
  }
- return {clearVolume,add,addDynamic(mesh,{walkable=false}={}){mesh.userData.navWalkable=walkable;dynamic.push(mesh);return()=>{const i=dynamic.indexOf(mesh);if(i>=0)dynamic.splice(i,1);};},sync,height,walk,obstructed,clearBody,canFly,landing,get lastObstacle(){return lastObstacle;},stats:()=>({lastObstacle,lastGround,...(diagnostics??={triangles,cells:cells.size,bytes:sets.reduce((n,s)=>n+s.positions.byteLength+s.data.byteLength+s.visited.byteLength,0)+[...new Set(sets.map(s=>s.index).filter(Boolean))].reduce((n,a)=>n+a.byteLength,0)+[...cells.values()].reduce((n,c)=>n+c.data.byteLength,0),largest:sets.map(s=>[s.name,s.data.length/3]).sort((a,b)=>b[1]-a[1]).slice(0,5)})})};
+ return {pickGround,clearVolume,add,addDynamic(mesh,{walkable=false}={}){mesh.userData.navWalkable=walkable;dynamic.push(mesh);return()=>{const i=dynamic.indexOf(mesh);if(i>=0)dynamic.splice(i,1);};},sync,height,walk,obstructed,clearBody,canFly,landing,get lastObstacle(){return lastObstacle;},stats:()=>({lastObstacle,lastGround,...(diagnostics??={triangles,cells:cells.size,bytes:sets.reduce((n,s)=>n+s.positions.byteLength+s.data.byteLength+s.visited.byteLength,0)+[...new Set(sets.map(s=>s.index).filter(Boolean))].reduce((n,a)=>n+a.byteLength,0)+[...cells.values()].reduce((n,c)=>n+c.data.byteLength,0),largest:sets.map(s=>[s.name,s.data.length/3]).sort((a,b)=>b[1]-a[1]).slice(0,5)})})};
 }
