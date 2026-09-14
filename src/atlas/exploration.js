@@ -84,8 +84,8 @@ export async function createAtlas(world,{sources,time,sun,hillSun,hemisphere,map
  serviceToggle.onclick=()=>{services.hidden=!services.hidden;serviceToggle.setAttribute('aria-expanded',String(!services.hidden));};
  const panelSize=new ResizeObserver(()=>document.body.style.setProperty('--visitor-panel-height',ui.offsetHeight+'px'));panelSize.observe(ui);
  ui.querySelector('.atlas-help').textContent='方向键 / WASD 开始步行 · 右键点地面前往 · 左键拖动环顾';
- const walkMarker=new T.Mesh(new T.RingGeometry(.19,.28,40),new T.MeshBasicMaterial({color:'#f3d99c',transparent:true,opacity:.85,side:T.DoubleSide,depthWrite:false}));
- walkMarker.rotation.x=-Math.PI/2;walkMarker.visible=false;walkMarker.userData.noCollision=true;scene.add(walkMarker);
+ const walkMarker=new T.Mesh(new T.RingGeometry(.19,.28,40),new T.MeshBasicMaterial({color:'#f3d99c',transparent:true,opacity:.85,side:T.DoubleSide,depthWrite:false,depthTest:false}));
+ walkMarker.name='Walking destination';walkMarker.renderOrder=120;walkMarker.rotation.x=-Math.PI/2;walkMarker.visible=false;walkMarker.userData.noCollision=true;scene.add(walkMarker);
  const walkRay=new T.Raycaster(),walkPointer=new T.Vector2();
  function fixedView(){return !!buildings.selected||quarter.ferry?.following||document.body.dataset.atlasInspecting==='true';}
  function startWalking(){return setMode('walk',{preserve:Math.hypot(camera.position.x-position.x,camera.position.z-position.z)<3&&Math.abs(camera.position.y-position.y-EYE_HEIGHT)<1});}
