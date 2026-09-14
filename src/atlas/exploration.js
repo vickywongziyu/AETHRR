@@ -95,7 +95,7 @@ export async function createAtlas(world,{sources,time,sun,hillSun,hemisphere,map
   e.preventDefault();e.stopImmediatePropagation();
   const rect=canvas.getBoundingClientRect();walkPointer.set((e.clientX-rect.left)/rect.width*2-1,1-(e.clientY-rect.top)/rect.height*2);walkRay.setFromCamera(walkPointer,camera);nav.sync();
   const target=nav.pickGround(walkRay.ray,60);
-  if(!target||!nav.clearBody(target)){stopWalking();say('请右键点选附近可站立的地面。');return;}
+  if(!target||!nav.canStand(target)){stopWalking();say('请右键点选附近可站立的地面。');return;}
   if(mode!=='walk'&&!startWalking())return;
   clearInput();autopilot=null;
   if(Math.hypot(target.x-position.x,target.z-position.z)>40){say('目的地较远，请先选择近处地面。');return;}
@@ -265,9 +265,11 @@ export async function createAtlas(world,{sources,time,sun,hillSun,hemisphere,map
   const running=keys.has('ShiftLeft')||keys.has('ShiftRight');
   if(walkTarget&&mode==='walk'){
    const dx=walkTarget.x-position.x,dz=walkTarget.z-position.z,distance=Math.hypot(dx,dz),step=Math.min(distance,(running?3.6:2.2)*dt);
-   if(distance<.13)stopWalking();
-   else if(!nav.walk(position,dx/distance*step,dz/distance*step)){blocked=true;stopWalking();say('前方有障碍或落差，已停下。请点选另一处地面绕行。');}
-   else{blocked=false;walkMarker.position.y=(nav.height(walkTarget.x,walkTarget.z,walkTarget.y+.8,walkTarget.y-.8)??walkTarget.y)+.035;}
+   const targetY=nav.height(walkTarget.x,walkTarget.z,walkTarget.y+.8,walkTarget.y-.8)??walkTarget.y,scale=distance>1e-6?step/distance:0;
+   // Nearby in XZ can still mean standing one tread above/below the target.
+   if(distance<.13&&Math.abs(position.y-targetY)<.08)stopWalking();
+   else if(!nav.walk(position,dx*scale,dz*scale)){blocked=true;stopWalking();say('前方有障碍或落差，已停下。请点选另一处地面绕行。');}
+   else{blocked=false;walkMarker.position.y=targetY+.035;}
   }else if(autopilot){
    eye.copy(position).y+=1.65;
    const target=autopilot.points[autopilot.index],step=40*dt,d=target.distanceTo(eye);

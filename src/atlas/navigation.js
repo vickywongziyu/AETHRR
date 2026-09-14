@@ -84,7 +84,7 @@ export function createNavigation(){
   for(const mesh of dynamic){mesh.updateWorldMatrix(true,false);for(const h of heightRay.intersectObject(mesh,false)){if(h.distance>=best)continue;best=h.distance;heightNormalMatrix.getNormalMatrix(mesh.matrixWorld);result={point:h.point.clone(),walkable:!!mesh.userData.navWalkable&&!!h.face&&heightNormal.copy(h.face.normal).applyMatrix3(heightNormalMatrix).normalize().y>=.57};}}
   return result?.walkable?result.point:null;
  }
- function obstructed(from,to,radius=.22,groundY=null,ignoreDynamic=null){
+ function obstructed(from,to,radius=.22,groundY=null,ignoreDynamic=null,stepTop=null){
   direction.subVectors(to,from);const lenSq=direction.lengthSq();if(lenSq>1e-12)direction.normalize();else direction.set(0,1,0);ray.set(from,direction);
   const xMin=Math.min(from.x,to.x)-radius,xMax=Math.max(from.x,to.x)+radius,zMin=Math.min(from.z,to.z)-radius,zMax=Math.max(from.z,to.z)+radius,yMin=Math.min(from.y,to.y)-radius,yMax=Math.max(from.y,to.y)+radius;
   const stamp=++query;
@@ -96,6 +96,10 @@ export function createNavigation(){
     // Walkable steps under the feet may be climbed, not treated as chest walls.
     const lowRiser=s.stepRange&&d[j+1]>=s.stepRange[0]-.001&&d[j+2]<=s.stepRange[1]+.001;
     if(groundY!==null&&(d[j]>.57||lowRiser)&&d[j+2]+s.dy<=groundY+.43)continue;
+    // Walking may clear a low solid riser even when its source mesh has no
+    // authoring tag. Only complete triangles below the step limit qualify;
+    // tall walls, rails and ceilings still test against the full capsule.
+    if(stepTop!==null&&d[j+2]+s.dy<=stepTop)continue;
     corners(s,k);if(Math.min(a.x,b.x,c.x)>xMax||Math.max(a.x,b.x,c.x)<xMin||Math.min(a.z,b.z,c.z)>zMax||Math.max(a.z,b.z,c.z)<zMin)continue;
     a.y+=s.dy;b.y+=s.dy;c.y+=s.dy;
     if(triangleDistanceSq(from,to,lenSq)<radius*radius){lastObstacle=s.name;return true;}
@@ -122,21 +126,38 @@ export function createNavigation(){
   }return true;
  }
  const bodyBottom=new T.Vector3(),bodyTop=new T.Vector3(),probe=new T.Vector3(),walkCandidate=new T.Vector3();
+ const stepUp=.43,stepDown=.65,supportOffsets=[[.12,0],[-.12,0],[0,.12],[0,-.12]],standingAxes=[[1,0],[0,1],[Math.SQRT1_2,Math.SQRT1_2],[-Math.SQRT1_2,Math.SQRT1_2]];
  function clearBody(pos,flying=false){
   const radius=flying?.37:.28;
   bodyBottom.set(pos.x,pos.y+radius+.025,pos.z);bodyTop.set(pos.x,pos.y+(flying?1.56:1.47),pos.z);
   return !obstructed(bodyBottom,bodyTop,radius,flying?null:pos.y);
  }
  function walk(pos,dx,dz){
-  const steps=Math.max(1,Math.ceil(Math.hypot(dx,dz)/.14));walkCandidate.copy(pos);
+  const distance=Math.hypot(dx,dz),steps=Math.max(1,Math.ceil(distance/.14));walkCandidate.copy(pos);
   for(let step=0;step<steps;step++){
-   const y=height(walkCandidate.x+dx/steps,walkCandidate.z+dz/steps,walkCandidate.y+.43,walkCandidate.y-.65);if(y===null)return false;
-   probe.set(walkCandidate.x+dx/steps,y,walkCandidate.z+dz/steps);if(!clearBody(probe))return false;
-   for(const [ox,oz] of [[.12,0],[-.12,0],[0,.12],[0,-.12]])if(height(probe.x+ox,probe.z+oz,y+.3,y-.5)===null)return false;
+   const y=height(walkCandidate.x+dx/steps,walkCandidate.z+dz/steps,walkCandidate.y+stepUp+.00001,walkCandidate.y-stepDown-.00001);if(y===null)return false;
+   probe.set(walkCandidate.x+dx/steps,y,walkCandidate.z+dz/steps);
+   if(!clearBody(probe)){
+    // On narrow stairs the capsule reaches the next riser before its centre
+    // crosses the first tread. Check real toe/heel support within the
+    // existing body radius, never raise the centre onto an invented ramp.
+    let lead=y;
+    const axes=distance?[[dx/distance,dz/distance]]:standingAxes;
+    for(const [sx,sz] of axes)for(let i=-4;i<=4;i++){if(!i)continue;lead=Math.max(lead,height(probe.x+sx*.07*i,probe.z+sz*.07*i,y+stepUp+.00001,y-stepDown-.00001)??y);}
+    const stepTop=Math.max(lead,walkCandidate.y)+stepUp+.00001;
+    if(obstructed(bodyBottom,bodyTop,.28,y,null,stepTop))return false;
+   }
+   // The edge probes must accept the same rise/drop as the centre probe.
+   // Otherwise a legal tread is rejected before the feet reach its edge.
+   for(const [ox,oz] of supportOffsets)if(height(probe.x+ox,probe.z+oz,y+stepUp+.00001,y-stepDown-.00001)===null)return false;
    walkCandidate.copy(probe);
   }
   pos.copy(walkCandidate);return true;
  }
+ const standingProbe=new T.Vector3();
+ // Target selection shares grounded stepping and edge support with movement.
+ // Keep clearBody unchanged for inspection cameras, flight and solid volumes.
+ function canStand(pos){return walk(standingProbe.copy(pos),0,0);}
  const flyProbe=new T.Vector3();
  function canFly(from,to){
   const steps=Math.max(1,Math.ceil(from.distanceTo(to)/.16));
@@ -153,5 +174,5 @@ export function createNavigation(){
    if(exits>=3){score=val;best=candidate;}
   }return best;
  }
- return {pickGround,clearVolume,add,addDynamic(mesh,{walkable=false}={}){mesh.userData.navWalkable=walkable;dynamic.push(mesh);return()=>{const i=dynamic.indexOf(mesh);if(i>=0)dynamic.splice(i,1);};},sync,height,walk,obstructed,clearBody,canFly,landing,get lastObstacle(){return lastObstacle;},stats:()=>({lastObstacle,lastGround,...(diagnostics??={triangles,cells:cells.size,bytes:sets.reduce((n,s)=>n+s.positions.byteLength+s.data.byteLength+s.visited.byteLength,0)+[...new Set(sets.map(s=>s.index).filter(Boolean))].reduce((n,a)=>n+a.byteLength,0)+[...cells.values()].reduce((n,c)=>n+c.data.byteLength,0),largest:sets.map(s=>[s.name,s.data.length/3]).sort((a,b)=>b[1]-a[1]).slice(0,5)})})};
+ return {pickGround,canStand,clearVolume,add,addDynamic(mesh,{walkable=false}={}){mesh.userData.navWalkable=walkable;dynamic.push(mesh);return()=>{const i=dynamic.indexOf(mesh);if(i>=0)dynamic.splice(i,1);};},sync,height,walk,obstructed,clearBody,canFly,landing,get lastObstacle(){return lastObstacle;},stats:()=>({lastObstacle,lastGround,...(diagnostics??={triangles,cells:cells.size,bytes:sets.reduce((n,s)=>n+s.positions.byteLength+s.data.byteLength+s.visited.byteLength,0)+[...new Set(sets.map(s=>s.index).filter(Boolean))].reduce((n,a)=>n+a.byteLength,0)+[...cells.values()].reduce((n,c)=>n+c.data.byteLength,0),largest:sets.map(s=>[s.name,s.data.length/3]).sort((a,b)=>b[1]-a[1]).slice(0,5)})})};
 }
