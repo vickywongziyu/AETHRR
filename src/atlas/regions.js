@@ -1,3 +1,4 @@
+import {loadModel} from './asset-loading.js';
 import * as T from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {DRACOLoader} from 'three/addons/loaders/DRACOLoader.js';
@@ -14,9 +15,9 @@ export const REGIONS=[
  {id:'valley',portalSite:{xz:[-43,-63],view:[-32,70,-48],scale:.55*.65},name:'北境河谷',en:'NORTH VALLEY',color:'#abc5c9',center:[790,0,110],offset:[790,0,140],scale:.65,spawn:[810,8,175],look:[790,17,102],view:[820,32,191],radius:150,asset:'atlas/north-valley.glb'},
 ];
 
-export async function loadRegion(region,time){
+export async function loadRegion(region,time,onProgress){
  const decoder=new DRACOLoader().setDecoderPath(import.meta.env.BASE_URL+'forest/draco/');let gltf;
- try{gltf=await new GLTFLoader().setDRACOLoader(decoder).loadAsync(import.meta.env.BASE_URL+region.asset);}finally{decoder.dispose();}
+ try{gltf=await loadModel(new GLTFLoader().setDRACOLoader(decoder),import.meta.env.BASE_URL+region.asset,{onProgress});}finally{decoder.dispose();}
  const source=gltf.scene;source.updateMatrixWorld(true);const root=new T.Group();root.name='Atlas · '+region.name;root.position.fromArray(region.offset);root.scale.setScalar(region.scale);
  const groups=new Map();
  source.traverse(o=>{if(!o.isMesh||/Distant_atmospheric_ground|Distant_range/i.test(o.name))return;

@@ -1,9 +1,10 @@
+import {loadModel} from '../atlas/asset-loading.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 
 // The patch contains the same 24 trees and leaves, translated as complete
 // trees in Blender. Swap geometry before navigation or materials are indexed.
-export async function applyRefinedGroves(source,decoder){
- const patch=await new GLTFLoader().setDRACOLoader(decoder).loadAsync(import.meta.env.BASE_URL+'aether/refined-groves-v24.glb');
+export async function applyRefinedGroves(source,decoder,buffer){
+ const patch=await loadModel(new GLTFLoader().setDRACOLoader(decoder),import.meta.env.BASE_URL+'aether/refined-groves-v24.glb',{buffer});
  const names=['Sky garden trees','Sky garden canopy','Observatory trees','Observatory canopy'];
  const key=name=>name.replaceAll('_',' '),originals=new Map(),replacements=new Map();
  source.traverse(o=>{if(o.isMesh&&names.includes(key(o.name)))originals.set(key(o.name),o);});

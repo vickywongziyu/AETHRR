@@ -1,8 +1,9 @@
+import {loadBinaryResource} from '../atlas/asset-loading.js';
 import * as T from 'three';
 import { noiseGLSL } from './atmosphere.js';
-export async function loadSurfaceMaps(){
+export async function loadSurfaceMaps(options={}){
  const loader=new T.TextureLoader(),base=import.meta.env.BASE_URL+'aether/textures/';
- const [color,normal,rough]=await Promise.all(['rock-color.jpg','rock-normal.jpg','rock-rough.jpg'].map(p=>loader.loadAsync(base+p)));
+ const [color,normal,rough]=await Promise.all(['rock-color.jpg','rock-normal.jpg','rock-rough.jpg'].map(p=>loadBinaryResource(loader,base+p,options)));
  color.colorSpace=T.SRGBColorSpace;
  for(const map of [color,normal,rough]){map.wrapS=map.wrapT=T.RepeatWrapping;map.anisotropy=8;}
  return {color,normal,rough,dispose(){color.dispose();normal.dispose();rough.dispose();}};

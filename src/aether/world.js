@@ -1,3 +1,4 @@
+import {fetchModel,loadModel,loadBinaryResource,paintLoading,transferText} from '../atlas/asset-loading.js';
 import * as T from 'three';
 import {omitInactiveLights} from './active-lights.js';
 import {createAtlas} from '../atlas/exploration.js';
@@ -16,14 +17,18 @@ import { createFlock } from './birds.js';
 import { chapters } from './content.js';
 import { createAtmosphere, waterfallMaterial } from './atmosphere.js';
 const vec=a=>new T.Vector3(...a);
-export async function createWorld(container,onProgress,reduced){
+export async function createWorld(container,onProgress=()=>{},reduced,{deferStart=false}={}){
  const mobile=innerWidth<700,captureMode=new URLSearchParams(location.search).has('capture');
  const renderer=new T.WebGLRenderer({antialias:true,powerPreference:'high-performance',preserveDrawingBuffer:true});
  const restoreLightRendering=omitInactiveLights(renderer);
  renderer.setPixelRatio(Math.min(devicePixelRatio,mobile?1.25:1.5));renderer.setSize(innerWidth,innerHeight);renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.02;renderer.outputColorSpace=T.SRGBColorSpace;
  renderer.info.autoReset=false;renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;container.appendChild(renderer.domElement);
  const scene=new T.Scene();
- const [hdr,maps]=await Promise.all([new HDRLoader().loadAsync(import.meta.env.BASE_URL+'aether/textures/sky.hdr'),loadSurfaceMaps()]);
+ let loadingStage='download';const downloads=new AbortController();
+ const prefetch=path=>{const p=fetchModel(import.meta.env.BASE_URL+path,{signal:downloads.signal,onProgress:info=>{if(path==='aether/aether.glb'&&loadingStage==='download')onProgress(.04+.30*(info.total?info.loaded/info.total:0),'正在下载群岛与建筑',transferText(info));}});p.catch(()=>{});return p;};
+ const modelBytes=prefetch('aether/aether.glb'),groveBytes=prefetch('aether/refined-groves-v24.glb'),hillBytes=prefetch('highland/horncrest.glb');
+ onProgress(.02,'正在下载模型、天空与材质');await paintLoading();
+ const [hdr,maps]=await Promise.all([loadBinaryResource(new HDRLoader(),import.meta.env.BASE_URL+'aether/textures/sky.hdr',{signal:downloads.signal}),loadSurfaceMaps({signal:downloads.signal})]).catch(error=>{downloads.abort();restoreLightRendering();renderer.dispose();renderer.domElement.remove();throw error;});
  hdr.mapping=T.EquirectangularReflectionMapping;
  const pmrem=new T.PMREMGenerator(renderer),env=pmrem.fromEquirectangular(hdr);pmrem.dispose();
  scene.environment=env.texture;scene.environmentIntensity=.38;scene.background=hdr;scene.backgroundIntensity=1.65;scene.backgroundRotation.y=-.85;scene.environmentRotation.y=-.85;
@@ -37,8 +42,8 @@ export async function createWorld(container,onProgress,reduced){
  const time={value:0};createAtmosphere(scene,time);
  const decoder=new DRACOLoader().setDecoderPath(import.meta.env.BASE_URL+'forest/draco/');
  let gltf;
- try{gltf=await new GLTFLoader().setDRACOLoader(decoder).loadAsync(import.meta.env.BASE_URL+'aether/aether.glb',e=>onProgress(e.total?e.loaded/e.total:Math.min(.95,e.loaded/5000000)));await applyRefinedGroves(gltf.scene,decoder);}
- catch(error){restoreLightRendering();renderer.dispose();renderer.domElement.remove();throw error;}finally{decoder.dispose();}
+ try{await modelBytes;loadingStage='decode';onProgress(.35,'正在解码群岛模型');await paintLoading();gltf=await loadModel(new GLTFLoader().setDRACOLoader(decoder),import.meta.env.BASE_URL+'aether/aether.glb',{buffer:modelBytes});loadingStage='construction';onProgress(.38,'正在展开群岛模型');await paintLoading();await applyRefinedGroves(gltf.scene,decoder,groveBytes);onProgress(.44,'正在配置森林与建筑材质');await paintLoading();}
+ catch(error){downloads.abort();restoreLightRendering();renderer.dispose();renderer.domElement.remove();throw error;}finally{decoder.dispose();}
  const floats=[],waters=[],materials=new Set(),crystal=crystalMaterial(env.texture);let meshes=0,vertices=0;
  gltf.scene.traverse(o=>{
   if(o.userData.floating)floats.push({object:o,y:o.position.y,phase:floats.length*.83});
@@ -54,7 +59,8 @@ export async function createWorld(container,onProgress,reduced){
 
 
  });scene.add(gltf.scene);
- const highland=await loadHighland(scene,maps,time);
+ onProgress(.48,'正在展开牛角山城');await paintLoading();
+ const highland=await loadHighland(scene,maps,time,hillBytes);
  const crossings=createCrossings(scene,renderer.domElement,camera,i=>api.go(i));
  const flock=createFlock(scene);
  // Waterfall spray follows each base. Points move down then diffuse in the wind.
@@ -91,8 +97,9 @@ export async function createWorld(container,onProgress,reduced){
  document.addEventListener('visibilitychange',visibility);
  // The viewport can change while the GLBs are loading (especially in the
  // desktop side panel). Sync it before the first rendered frame and labels.
- window.addEventListener('resize',resize);resize();draw(0);if(!captureMode)raf=requestAnimationFrame(animate);
- const api={scene,camera,renderer,controls,
+ window.addEventListener('resize',resize);resize();
+ let started=false;function start(){if(started||disposed)return;started=true;last=performance.now();draw(t);if(!captureMode)raf=requestAnimationFrame(animate);}
+ const api={scene,camera,renderer,controls,start,
  cancelCameraMotion({preserveExploration=false}={}){if(!preserveExploration&&atlas?.active)atlas.setMode('observe');atlas?.quarter?.ferry?.unfollow();atlas?.starHall?.stop();touring=false;moving=null;report();},
  go(i,{immediate=false}={}){atlas?.quarter?.ferry?.unfollow();atlas?.starHall?.clear();atlas?.buildings.close();delete document.body.dataset.atlasInspecting;if(atlas?.active)atlas.setMode('observe');chapter=i;touring=false;const c=chapters[i];moving={elapsed:0,duration:reduced?.001:Math.max(2.8,Math.min(8,camera.position.distanceTo(vec(c.position))*.055)),from:camera.position.clone(),to:vec(c.position),aimFrom:controls.target.clone(),aimTo:vec(c.target)};if(captureMode||immediate){camera.position.copy(moving.to);controls.target.copy(moving.aimTo);controls.update();draw(t);moving=null;}report();},
  setTour(v){if(v)atlas?.quarter?.ferry?.unfollow();if(v)atlas?.starHall?.clear();if(v)atlas?.buildings.close();if(v&&atlas?.active)atlas.setMode('observe');touring=v;moving=null;if(v){playing=true;tourProgress=chapter/chapters.length;}report();},
@@ -101,5 +108,5 @@ export async function createWorld(container,onProgress,reduced){
  stats(){return{meshes,vertices,highlandLoaded:!!highland,chapters:chapters.length,floatingIslands:floats.length,waterfalls:waters.length,birds:flock.birds.length,playing,touring,chapter,time:t,camera:camera.position.toArray(),drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles};},
  setQuality(level){const ratio={low:.75,balanced:1,high:mobile?1.25:1.5}[level]??1.5;renderer.setPixelRatio(Math.min(devicePixelRatio,ratio));composer.setPixelRatio(renderer.getPixelRatio());composer.passes[1].enabled=level!=='low';renderer.shadowMap.enabled=level!=='low';const samples=level==='low'?0:level==='balanced'?2:mobile?2:4;for(const target of [composer.renderTarget1,composer.renderTarget2])if(target.samples!==samples){target.samples=samples;target.dispose();}return {pixelRatio:renderer.getPixelRatio(),samples,bloom:composer.passes[1].enabled,shadows:renderer.shadowMap.enabled};},
  dispose(){disposed=true;api.shell?.dispose();api.visitor?.dispose();atlas?.dispose();cancelAnimationFrame(raf);window.removeEventListener('resize',resize);document.removeEventListener('visibilitychange',visibility);controls.dispose();crossings.dispose();scene.traverse(o=>{o.geometry?.dispose();if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.dispose());});composer.dispose();maps.dispose();hdr.dispose();env.dispose();restoreLightRendering();renderer.dispose();},
- };if(!captureMode){atlas=createAtlas(api,{sources:[gltf.scene,highland],time,sun,hillSun,hemisphere,maps});api.atlas=atlas;}return api;
+ };if(!captureMode){atlas=await createAtlas(api,{sources:[gltf.scene,highland],time,sun,hillSun,hemisphere,maps,onProgress});api.atlas=atlas;}if(!deferStart)start();return api;
 }

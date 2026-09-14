@@ -1,3 +1,4 @@
+import {paintLoading,transferText} from './asset-loading.js';
 import {createStarHall} from './star-hall.js';
 import {createForestGarden} from './forest-garden.js';
 import * as T from 'three';
@@ -31,17 +32,21 @@ import './style.css';
 const CHARACTER_ENABLED=false;
 const FIRST_PERSON=!CHARACTER_ENABLED, EYE_HEIGHT=1.65;
 
-export function createAtlas(world,{sources,time,sun,hillSun,hemisphere,maps}){
+export async function createAtlas(world,{sources,time,sun,hillSun,hemisphere,maps,onProgress=()=>{}}){
  const {scene,camera,controls,renderer}=world,nav=createNavigation(),regions=REGIONS.map(r=>({...r,status:r.asset?'idle':'ready'}));
  // Keep the original Aether–Horncrest stair bridges. New links to Violet remain absent.
  const removedBridgeTriangles=0;
  // Highland paths must sample the finished cliff mesh, including its ledges.
+ onProgress(.53,'正在构建山城地形');await paintLoading();
  const geology=createGeology(maps);geology.add(regions[1],sources[1]);
+ onProgress(.56,'正在布置建筑与室内空间');await paintLoading();
  const settlements=createSettlementArchitecture();sources.forEach((root,i)=>settlements.add(regions[i],root));
+ await paintLoading();
  const refraction=createCrystalRefraction(world,sources);
  const details=createRegionalDetails(world,settlements,time);sources.forEach((root,i)=>details.add(regions[i],root));
  geology.add(regions[0],sources[0]);
- const vegetation=createVegetationClearance();sources.forEach(root=>{nav.add(root);if(CHARACTER_ENABLED)vegetation.add(root);});
+ const vegetation=createVegetationClearance();for(const [i,root] of sources.entries()){onProgress(.60+i*.04,'正在准备'+regions[i].name+'的道路与碰撞');await paintLoading();nav.add(root);if(CHARACTER_ENABLED)vegetation.add(root);}
+ onProgress(.69,'正在准备地图与城镇互动');await paintLoading();
  const canvas=renderer.domElement,keys=new Set(),position=new T.Vector3(),forward=new T.Vector3(),right=new T.Vector3(),velocity=new T.Vector3(),next=new T.Vector3(),euler=new T.Euler(0,0,0,'YXZ');
  const originalFog=scene.fog.color.clone(),purple=new T.Color('#4d355c');let mode='observe',yaw=0,pitch=0,drag=null,autopilot=null,current='aether',blocked=false,disposed=false,mapFocus=null;
  let traveler=null,characterPromise=null,verticalSpeed=0,flightCameraBias=0,manualCameraUntil=0;
@@ -173,8 +178,8 @@ export function createAtlas(world,{sources,time,sun,hillSun,hemisphere,maps}){
  async function load(r){if(r.promise)return r.promise;r.status='loading';updateCard(r);
   // Don't overlap Draco decoding and multi-million-triangle construction for
   // rapid map selections or all-world callers: their transient heaps add up.
-  r.promise=regionLoadQueue.then(async()=>{try{if(disposed)return;const root=await loadRegion(r,time);if(disposed)return;settlements.add(r,root);quarter.add(r,root);valleyTown.add(r,root);forestGarden.add(r,root);details.add(r,root);r.root=root;scene.add(root);nav.add(root);if(CHARACTER_ENABLED)vegetation.add(root);prepareLanding(r);gathering.add(r,root);valleyTown.reserveFlora(r);forestGarden.reserveFlora(r);environment.add(r,root);details.enableLOD(r);discoveries.add(r);town.add(r);resources.add(r,root);refraction.add(scene);r.status='ready';}
-   catch(error){r.status='error';console.warn('Atlas region unavailable:',r.id,error);say(r.name+'暂未加载，地图中可重试。');}finally{r.promise=null;updateCard(r);}});regionLoadQueue=r.promise;return r.promise;
+  r.promise=regionLoadQueue.then(async()=>{try{if(disposed)return;const root=await loadRegion(r,time,p=>{r.progress=p;onProgress(.75+.12*(p.total?p.loaded/p.total:0),'正在载入'+r.name,transferText(p));});if(disposed)return;onProgress(.88,'正在布置'+r.name+'的建筑');await paintLoading();settlements.add(r,root);quarter.add(r,root);valleyTown.add(r,root);forestGarden.add(r,root);details.add(r,root);r.root=root;scene.add(root);onProgress(.91,'正在准备'+r.name+'的道路与碰撞');await paintLoading();nav.add(root);if(CHARACTER_ENABLED)vegetation.add(root);prepareLanding(r);onProgress(.94,'正在准备'+r.name+'的城镇互动');await paintLoading();gathering.add(r,root);valleyTown.reserveFlora(r);forestGarden.reserveFlora(r);environment.add(r,root);details.enableLOD(r);discoveries.add(r);town.add(r);resources.add(r,root);refraction.add(scene);r.status='ready';}
+   catch(error){r.status='error';r.error=error;console.warn('Atlas region unavailable:',r.id,error);say(r.name+'暂未加载，地图中可重试。');}finally{r.promise=null;updateCard(r);}});regionLoadQueue=r.promise;return r.promise;
  }
  function travel(id,method='teleport'){
   starHall.clear();resources.clear();valleyTown.clear();forestGarden.clear();quarter.clear();housing.close();market.clear();town.clear();discoveries.clear();buildings.close();gathering.cancel({clearSelection:true});delete document.body.dataset.atlasInspecting;

@@ -1,10 +1,11 @@
+import {loadModel} from '../atlas/asset-loading.js';
 import * as T from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {DRACOLoader} from 'three/addons/loaders/DRACOLoader.js';
 import {noiseGLSL} from './atmosphere.js';
-export async function loadHighland(scene,maps,time){
+export async function loadHighland(scene,maps,time,buffer){
  const decoder=new DRACOLoader().setDecoderPath(import.meta.env.BASE_URL+'forest/draco/');
- let gltf;try{gltf=await new GLTFLoader().setDRACOLoader(decoder).loadAsync(import.meta.env.BASE_URL+'highland/horncrest.glb');}finally{decoder.dispose();}
+ let gltf;try{gltf=await loadModel(new GLTFLoader().setDRACOLoader(decoder),import.meta.env.BASE_URL+'highland/horncrest.glb',{buffer});}finally{decoder.dispose();}
  const root=gltf.scene;root.name='Horncrest opposite shore';root.position.z=150;root.rotation.y=Math.PI;
  root.traverse(o=>{if(!o.isMesh)return;o.castShadow=true;o.receiveShadow=true;const m=o.material,kind=m.name.replace(/^HC /,'').replace(/\.\d+$/,'');m.envMapIntensity=.30;m.roughness=.92;
   if(kind==='pine')m.side=T.DoubleSide;

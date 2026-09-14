@@ -1,3 +1,4 @@
+import {loadModel} from '../atlas/asset-loading.js';
 import * as T from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
@@ -60,9 +61,9 @@ export function createDiorama(container,{onEnter,onLoading,onSelect,onOverviewPr
  }
  function normalizeModel(asset){const m=asset.scene.clone(true),box=new T.Box3().setFromObject(m),size=box.getSize(new T.Vector3()),center=box.getCenter(new T.Vector3()),scale=6.4/Math.max(size.x,size.z,size.y*1.18);m.scale.setScalar(scale);m.position.set(-center.x*scale,.15-box.min.y*scale,-center.z*scale);m.traverse(o=>{if(o.isMesh)o.castShadow=o.receiveShadow=true;});return m;}
  async function loadEntry(city){const e=prepareEntry(city);if(e.model)return e;if(e.promise)return e.promise;
-  e.status='loading';e.promise=(async()=>{try{if(!cache.has(city.id))cache.set(city.id,loader.loadAsync(import.meta.env.BASE_URL+'atlas/miniatures/'+city.id+'.glb').catch(error=>{cache.delete(city.id);throw error;}));const asset=await cache.get(city.id);if(disposed)return e;e.model=normalizeModel(asset);e.group.add(e.model);e.status='ready';if(id===city.id){model=e.model;objects=e.setting;onLoading(false);}}catch(error){e.status='error';if(id===city.id)onLoading(false,error);}finally{e.promise=null;reportOverview();}return e;})();return e.promise;
+  e.status='loading';e.promise=(async()=>{try{if(!cache.has(city.id))cache.set(city.id,loadModel(loader,import.meta.env.BASE_URL+'atlas/miniatures/'+city.id+'.glb',{onProgress(p){e.progress=p;if(id===city.id)onLoading(true,null,p);reportOverview();}}).catch(error=>{cache.delete(city.id);throw error;}));const asset=await cache.get(city.id);if(disposed)return e;e.model=normalizeModel(asset);e.group.add(e.model);e.status='ready';if(id===city.id){model=e.model;objects=e.setting;onLoading(false);}}catch(error){e.status='error';if(id===city.id)onLoading(false,error);}finally{e.promise=null;reportOverview();}return e;})();return e.promise;
  }
- function reportOverview(){if(id!=='overview')return;onOverviewProgress?.(CITIES.map(c=>({id:c.id,status:entries.get(c.id)?.status||'pending'})));}
+ function reportOverview(){if(id!=='overview')return;onOverviewProgress?.(CITIES.map(c=>({id:c.id,status:entries.get(c.id)?.status||'pending',progress:entries.get(c.id)?.progress})));}
  function resetCamera(){controls.maxPolarAngle=1.48;controls.enableDamping=false;controls.reset();camera.position.set(11,8,16);controls.target.set(0,2,0);controls.update();controls.enableDamping=true;}
  function overviewLayout(){if(id!=='overview')return;resetCamera();controls.enabled=false;camera.updateMatrixWorld();
   const small=innerWidth<700,slots=small?[[.25,.395],[.75,.395],[.25,.58],[.75,.58],[.5,.765]]:[[.18,.47],[.43,.42],[.75,.51],[.32,.69],[.60,.70]],width=Math.min(innerWidth*(small?.35:.19),260),distance=camera.position.distanceTo(controls.target),worldPerPixel=2*distance*Math.tan(T.MathUtils.degToRad(camera.fov/2))/innerHeight,forward=controls.target.clone().sub(camera.position).normalize(),scale=width*worldPerPixel/11.5;
