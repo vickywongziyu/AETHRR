@@ -52,10 +52,10 @@ livingPos=(modelMatrix*livingPoint).xyz;
  };
  material.customProgramCacheKey=()=>`living-surface-v6-${kind}-${region}`;material.needsUpdate=true;
 }
-export function createFantasyEnvironment({world,time,sun,hillSun,hemisphere,regionalLight,gathering}){
+export function createFantasyEnvironment({world,time,sun,hillSun,hemisphere,regionalLight,gathering,surfaceMaps}){
  const groundMap=new T.TextureLoader().load(import.meta.env.BASE_URL+'atlas/textures/painted-meadow-v1-web.jpg');groundMap.colorSpace=T.SRGBColorSpace;groundMap.wrapS=groundMap.wrapT=T.RepeatWrapping;groundMap.anisotropy=8;
  const {scene,camera,controls}=world,seen=new Set(),smoothTrees=new Map(),records=[];let night=false,blend=0,last=performance.now(),sound=null;
- const meadowLife=createMeadowLife(scene,gathering.flora),canopy=createCanopyRefinement(time),architecture=createArchitecturalSurfaces();
+ const meadowLife=createMeadowLife(scene,gathering.flora),canopy=createCanopyRefinement(time),architecture=createArchitecturalSurfaces(surfaceMaps);
  regionalLight.castShadow=true;regionalLight.shadow.mapSize.set(innerWidth<700?1024:2048,innerWidth<700?1024:2048);Object.assign(regionalLight.shadow.camera,{left:-48,right:48,top:48,bottom:-48,near:1,far:190});regionalLight.shadow.normalBias=.045;regionalLight.shadow.bias=-.00008;
  controls.minDistance=1.8;controls.enablePan=true;controls.panSpeed=.65;controls.zoomSpeed=.75;
  const buttons=document.createElement('span');buttons.className='atlas-environment';buttons.innerHTML='<button data-environment="night" aria-label="切换月夜" title="晨光 / 月夜" aria-pressed="false">☾</button><button data-environment="sound" aria-label="开启环境声" title="环境声" aria-pressed="false">♪</button>';document.querySelector('.atlas-location').append(buttons);

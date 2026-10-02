@@ -66,7 +66,7 @@ export async function createAtlas(world,{sources,time,sun,hillSun,hemisphere,map
  document.body.append(ui,message,map,reticle,pad,gateButton);
  const transition=createWorldTransition(),portalPassage=createPortalPassage(world,nav);
  const gathering=createGathering({world,nav,time,isBlocked,say});
- const environment=createFantasyEnvironment({world,time,sun,hillSun,hemisphere,regionalLight:light,gathering});
+ const environment=createFantasyEnvironment({world,time,sun,hillSun,hemisphere,regionalLight:light,gathering,surfaceMaps:maps});
  const buildings=createBuildingInspection(world,settlements,{gathering,isBlocked,getRegion:()=>current,nav});
  const discoveries=createDiscoveries(world,{settlements,gathering,buildings,nav,isBlocked,say});regions.slice(0,2).forEach(r=>discoveries.add(r));
  const town=createTownLife(world,{settlements,gathering,buildings,nav,isBlocked,say});regions.slice(0,2).forEach(r=>town.add(r));
@@ -76,7 +76,7 @@ export async function createAtlas(world,{sources,time,sun,hillSun,hemisphere,map
  const valleyTown=createValleyTownLife(world,{settlements,nav,buildings,gathering,market,environment,isBlocked,say});
  const forestGarden=createForestGarden(world,{settlements,nav,buildings,gathering,market,town,isBlocked,say});
  const starHall=createStarHall(world,{source:sources[0],settlements,nav,buildings,market,gathering,environment,isBlocked,say});
- const resources=createResources(world,{settlements,nav,market,gathering,town,isBlocked,say});
+ const resources=createResources(world,{settlements,nav,market,gathering,town,isBlocked,say,surfaceMaps:maps});
  const objectives=createObjectives(world,{gathering,town,market,discoveries,resources,valleyTown,getRegion:()=>current,isBlocked,say});
  const services=document.createElement('div');services.className='atlas-services';services.id='atlas-services';services.hidden=true;
  const serviceToggle=document.createElement('button');serviceToggle.className='atlas-services-toggle';serviceToggle.textContent='城镇功能';serviceToggle.setAttribute('aria-expanded','false');serviceToggle.setAttribute('aria-controls',services.id);

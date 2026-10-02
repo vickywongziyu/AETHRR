@@ -4,8 +4,8 @@ import {RESOURCE_TYPES,RESOURCE_SITES,RESOURCE_SKILLS,resourceDuration,resourceL
 import {GOODS,MARKET_KEY} from './market-content.js';
 import {createResourceMaterials,makeResource,makeCharcoalKiln,makeHandMill} from './resource-props.js';
 import './resources.css';
-export function createResources(world,{settlements,nav,market,gathering,town,isBlocked,say}){
- const {camera,controls}=world,canvas=world.renderer.domElement,materials=createResourceMaterials(settlements.materials),records=[],extras=[],reservations=[],seen=new Set(),ray=new T.Raycaster(),pointer=new T.Vector2(),groundRay=new T.Raycaster(),reduced=matchMedia('(prefers-reduced-motion: reduce)');let task=null,down=null,hovered=null,viewRecord=null,lastAnchor=new T.Vector3(),previous=null,enabled=true,last=0,disposed=false;
+export function createResources(world,{settlements,nav,market,gathering,town,isBlocked,say,surfaceMaps}){
+ const {camera,controls}=world,canvas=world.renderer.domElement,materials=createResourceMaterials(settlements.materials,surfaceMaps),records=[],extras=[],reservations=[],seen=new Set(),ray=new T.Raycaster(),pointer=new T.Vector2(),groundRay=new T.Raycaster(),reduced=matchMedia('(prefers-reduced-motion: reduce)');let task=null,down=null,hovered=null,viewRecord=null,lastAnchor=new T.Vector3(),previous=null,enabled=true,last=0,disposed=false;
  const dialog=document.createElement('dialog');dialog.className='resource-directory';dialog.setAttribute('aria-labelledby','resource-title');dialog.innerHTML='<header><div><small>五境 · 原料与产地</small><h2 id="resource-title">沿着手艺，寻找原料</h2></div><button aria-label="关闭原料产地">×</button></header><p>矿石、草药、陶土与木材都能收入行囊，在原有工坊继续加工。</p><div class="resource-skills"></div><div class="resource-list"></div><p class="resource-feedback" role="status"></p>';
  const hint=document.createElement('button');hint.className='resource-hint';hint.hidden=true;
  const activity=document.createElement('section');activity.className='resource-activity';activity.hidden=true;activity.innerHTML='<strong></strong><p role="status"></p><progress max="1"></progress><button>收起工具 · Esc</button>';

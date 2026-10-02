@@ -70,6 +70,6 @@ export function createWorldShell({world=null,home=null}){
  }else readout.textContent='点击城镇 · 选择光门';
  }
  function homeKey(e){if(!home||e.repeat||e.ctrlKey||e.metaKey||/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)||document.querySelector('dialog[open]'))return;if(e.code==='KeyM'){e.preventDefault();open('maps');}if(e.code==='KeyH'){e.preventDefault();document.body.dataset.visitorHidden=String(document.body.dataset.visitorHidden!=='true');document.body.dataset.homeHidden=document.body.dataset.visitorHidden;}}window.addEventListener('keydown',homeKey);
- setRegion(region);apply();frame=requestAnimationFrame(tick);
+ setRegion(region);apply();if(world)frame=requestAnimationFrame(tick);else readout.textContent='点击城镇 · 选择光门';
  return{settings,setRegion,open,choose,setMotion(value){settings.motion=!!value;persist();},dispose(){disposed=true;metadataRequest++;metadataController?.abort();window.removeEventListener('keydown',homeKey);cancelAnimationFrame(frame);clearTimeout(timer);if(dialog.open)dialog.close();root.remove();delete document.body.dataset.worldShell;}};
 }

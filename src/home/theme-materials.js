@@ -1,9 +1,9 @@
 import * as T from 'three';
 import {paintedNoiseGLSL} from '../atlas/painted-surface.js';
 
-export function createThresholdMaterials(){
+export function createThresholdMaterials(onLoad=()=>{}){
  const loader=new T.TextureLoader(),base=import.meta.env.BASE_URL+'aether/textures/';
- const textures=['rock-color-web.jpg','rock-normal-web.jpg','rock-rough-web.jpg'].map(name=>loader.load(base+name));
+ const textures=['rock-color-web.jpg','rock-normal-web.jpg','rock-rough-web.jpg'].map(name=>loader.load(base+name,onLoad));
  for(const t of textures){t.wrapS=t.wrapT=T.RepeatWrapping;t.anisotropy=4;}
  textures[0].colorSpace=T.SRGBColorSpace;
  const stone=new T.MeshStandardMaterial({color:'#566d80',map:textures[0],normalMap:textures[1],roughnessMap:textures[2],roughness:.94,normalScale:new T.Vector2(.48,.48)});

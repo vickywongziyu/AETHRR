@@ -34,7 +34,7 @@ export async function createValley(container,{onProgress=()=>{},onFrame=()=>{},o
   const world=new T.Group();world.name='North_Valley';scene.add(world);const time={value:0};
   makeTerrain(world,tex);onProgress(.35);await new Promise(r=>setTimeout(r,20));
   const imageLoader=new T.ImageLoader();
-  const [branchImage,alphaImage]=await Promise.all([imageLoader.loadAsync(asset('valley/fir-branch.jpg')),imageLoader.loadAsync(asset('valley/fir-alpha.png'))]);
+  const [branchImage,alphaImage]=await Promise.all([imageLoader.loadAsync(asset('valley/fir-branch-web.webp')),imageLoader.loadAsync(asset('valley/fir-alpha-web.webp'))]);
   const canvas=document.createElement('canvas');canvas.width=canvas.height=1024;
   const context=canvas.getContext('2d',{willReadFrequently:true});context.drawImage(branchImage,0,0,1024,1024);const rgba=context.getImageData(0,0,1024,1024);context.clearRect(0,0,1024,1024);context.drawImage(alphaImage,0,0,1024,1024);const mask=context.getImageData(0,0,1024,1024);
   for(let i=0;i<rgba.data.length;i+=4)rgba.data[i+3]=mask.data[i];context.putImageData(rgba,0,0);

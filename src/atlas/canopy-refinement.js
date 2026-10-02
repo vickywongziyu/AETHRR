@@ -62,7 +62,7 @@ canopyWorld=(modelMatrix*cw).xyz;
 }
 export function createCanopyRefinement(time){
  const loader=new T.TextureLoader(),base=import.meta.env.BASE_URL+'assets/valley/';
- const branch=loader.load(base+'fir-branch.jpg'),alpha=loader.load(base+'fir-alpha.png');branch.colorSpace=T.SRGBColorSpace;branch.anisotropy=8;alpha.anisotropy=8;
+ const branch=loader.load(base+'fir-branch-web.webp'),alpha=loader.load(base+'fir-alpha-web.webp');branch.colorSpace=T.SRGBColorSpace;branch.anisotropy=8;alpha.anisotropy=8;
  const geometryCache=new Map(),materialCache=new Map(),snowGeometry=new Map(),snowMaterial=branchSnowMaterial(time),records=[],lod=createCanopyLOD();
  function add(region,root){let foliage=0,folded=0,restored=0,pineCrowns=null;
   root.traverse(o=>{

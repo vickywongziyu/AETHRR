@@ -7,7 +7,7 @@ export default defineConfig({
   plugins:[{name:'valley-assets-only',closeBundle(){
     mkdirSync('dist-valley/assets/valley',{recursive:true});
     cpSync('public/assets/granite.jpg','dist-valley/assets/granite.jpg');
-    for(const file of ['fir-branch.jpg','fir-alpha.png','granite-scan.glb','water-normal.jpg'])cpSync('public/assets/valley/'+file,'dist-valley/assets/valley/'+file);
+    for(const file of ['fir-branch.jpg','fir-alpha.png','fir-branch-web.webp','fir-alpha-web.webp','granite-scan.glb','water-normal.jpg'])cpSync('public/assets/valley/'+file,'dist-valley/assets/valley/'+file);
   }}],
   build:{outDir:'dist-valley',rollupOptions:{input:fileURLToPath(new URL('../valley.html',import.meta.url))}},
 });

@@ -6,9 +6,9 @@ import {VEIL_FLOW_FRAGMENT} from './veil-flow.js';
 import {CITIES} from '../atlas/atlas-ui-data.js';
 import {createThresholdMaterials,stoneUV} from './theme-materials.js';
 
-export function createThemeGate(){
+export function createThemeGate(onLoad=()=>{}){
  const group=new T.Group();group.name='Aether · engraved five-city threshold';
- const m=createThresholdMaterials(),clock={value:0},crystals=[],cloth=[];
+ const m=createThresholdMaterials(onLoad),clock={value:0},crystals=[],cloth=[];
  const carved=addStonePortalFrame(group,{stone:'#8b9193',color:'#c7b17e'},{plinth:false});
  carved.frame.material.dispose();carved.frame.material=m.stone;stoneUV(carved.frame.geometry);
  carved.inscription.material.emissiveIntensity=.13;
@@ -80,7 +80,7 @@ export function createThemeGate(){
  const points=[];for(let i=0;i<180;i++){const a=i*2.399,r=3.9+Math.sin(i*11)*.4;points.push(Math.cos(a)*r,3.6+Math.sin(a)*r*.85,Math.cos(i*13)*.4);}
  const dustGeo=new T.BufferGeometry();dustGeo.setAttribute('position',new T.Float32BufferAttribute(points,3));const dust=new T.Points(dustGeo,new T.PointsMaterial({color:'#e9d8b5',size:.028,transparent:true,opacity:.85,depthWrite:false}));group.add(dust);
  // A volumetric impression from translucent fluid layers and real distant architecture.
- const veilReady={value:0},veilTexture=new T.TextureLoader().load(import.meta.env.BASE_URL+'atlas/home/portal-veil-v42.jpg',()=>veilReady.value=1);veilTexture.colorSpace=T.SRGBColorSpace;
+ const veilReady={value:0},veilTexture=new T.TextureLoader().load(import.meta.env.BASE_URL+'atlas/home/portal-veil-v42.jpg',()=>{veilReady.value=1;onLoad();});veilTexture.colorSpace=T.SRGBColorSpace;
  const portalMaterial=new T.ShaderMaterial({uniforms:{uTime:clock,veilTexture:{value:veilTexture},veilReady},vertexShader:STONE_VEIL_VERTEX,fragmentShader:VEIL_FLOW_FRAGMENT,transparent:true,side:T.DoubleSide,depthWrite:false});
  const surface=add(carved.aperture,portalMaterial,[0,3.43,.065]);surface.name='Interactive_portal_surface';surface.castShadow=false;surface.renderOrder=3;
  const inner=new T.Group();inner.name='Beyond the veil · floating citadel';group.add(inner);
