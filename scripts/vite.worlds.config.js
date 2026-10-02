@@ -13,8 +13,8 @@ const packedBytes = new Map(packed.map(file => [file, gzipSync(readFileSync(root
 const assetBytes = {};
 const walk = dir => { for (const name of readdirSync(root+'public/'+dir)) { const rel = dir+'/'+name, s = statSync(root+'public/'+rel); if (s.isDirectory()) walk(rel); else if (/\.(glb|hdr|jpe?g|png|webp)$/i.test(name)) assetBytes[rel] = s.size; } };
 copied.forEach(walk);
-// Fingerprints identify disposable original GLB bytes, never decoded geometry or visitor saves.
-const modelHashes=Object.fromEntries(['aether/aether.glb','atlas/north-valley.glb'].map(file=>[file,createHash('sha256').update(readFileSync(root+'public/'+file)).digest('hex')]));
+// Fingerprints identify the requested GLB bytes, never decoded geometry or visitor saves.
+const modelHashes=Object.fromEntries(['aether/aether-runtime-v55.glb','atlas/north-valley.glb'].map(file=>[file,createHash('sha256').update(readFileSync(root+'public/'+file)).digest('hex')]));
 for (const [file, bytes] of packedBytes) assetBytes[file+'.bin'] = bytes.length;
 export default defineConfig({
   base: './', publicDir: false,

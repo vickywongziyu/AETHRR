@@ -1,7 +1,9 @@
 // Only fingerprinted, same-origin models enter this disposable byte cache.
 // It is independent of visitor saves and never requests persistent storage.
 const HASHES=typeof __MODEL_HASHES__==='object'&&__MODEL_HASHES__?__MODEL_HASHES__:{};
-const PATHS=new Set(['aether/aether.glb','atlas/north-valley.glb']);
+// The superseded original Aether path is no longer eligible. Its disposable
+// V54 records are removed by the existing invalid-entry sweep on the next write.
+const PATHS=new Set(['aether/aether-runtime-v55.glb','atlas/north-valley.glb']);
 const DATABASE='aether.model-bytes.v1',LIMIT=48*1024*1024;
 const OPEN_MS=700,IO_MS=900,HASH_MS=1500,WRITE_MS=8000,WRITE_HASH_MS=8000;
 let database=null,opening=null,disabledUntil=0,generation=0,running=false;

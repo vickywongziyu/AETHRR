@@ -18,6 +18,9 @@ import { createFlock } from './birds.js';
 import { chapters } from './content.js';
 import { createAtmosphere, waterfallMaterial } from './atmosphere.js';
 const vec=a=>new T.Vector3(...a);
+// Original native GLB stays available; this web copy omits only four grove
+// geometries that applyRefinedGroves replaces before materials/navigation.
+const AETHER_MODEL='aether/aether-runtime-v55.glb';
 export async function createWorld(container,onProgress=()=>{},reduced,{deferStart=false}={}){
  const mobile=innerWidth<700,captureMode=new URLSearchParams(location.search).has('capture');
  // capture() reads pixels in the same task as draw(), so the drawing buffer only needs preserving for frame exports.
@@ -28,7 +31,7 @@ export async function createWorld(container,onProgress=()=>{},reduced,{deferStar
  const scene=new T.Scene();
  let loadingStage='download';const downloads=new AbortController();
  // One progress figure for every base download (models, sky and rock maps), using build-time sizes when the server omits Content-Length.
- const baseFiles=['aether/aether.glb','aether/refined-groves-v24.glb','highland/horncrest.glb','aether/textures/sky.hdr','aether/textures/rock-color-web.jpg','aether/textures/rock-normal-web.jpg','aether/textures/rock-rough-web.jpg'],transfers=new Map(baseFiles.map(f=>[f,{loaded:0,total:expectedBytes(f),source:"pending"}]));
+ const baseFiles=[AETHER_MODEL,'aether/refined-groves-v24.glb','highland/horncrest.glb','aether/textures/sky.hdr','aether/textures/rock-color-web.jpg','aether/textures/rock-normal-web.jpg','aether/textures/rock-rough-web.jpg'],transfers=new Map(baseFiles.map(f=>[f,{loaded:0,total:expectedBytes(f),source:"pending"}]));
  const track=path=>info=>{
   if(!['download','cache'].includes(info.phase))return;
   const entry=transfers.get(path);entry.loaded=info.loaded;entry.source=info.phase;if(info.total)entry.total=Math.max(entry.total,info.total);
@@ -39,7 +42,7 @@ export async function createWorld(container,onProgress=()=>{},reduced,{deferStar
   onProgress(.04+.30*(total?Math.min(1,loaded/total):0),local?'正在复用模型并加载材质':'正在下载群岛与建筑',detail);
  };
  const prefetch=path=>{const p=fetchModel(import.meta.env.BASE_URL+path,{signal:downloads.signal,onProgress:track(path)});p.catch(()=>{});return p;};
- const modelBytes=prefetch('aether/aether.glb'),groveBytes=prefetch('aether/refined-groves-v24.glb'),hillBytes=prefetch('highland/horncrest.glb');
+ const modelBytes=prefetch(AETHER_MODEL),groveBytes=prefetch('aether/refined-groves-v24.glb'),hillBytes=prefetch('highland/horncrest.glb');
  onProgress(.02,'正在下载模型、天空与材质');await paintLoading();
  const [hdr,maps]=await Promise.all([loadBinaryResource(new HDRLoader(),import.meta.env.BASE_URL+'aether/textures/sky.hdr',{signal:downloads.signal,onProgress:track('aether/textures/sky.hdr')}),loadSurfaceMaps({signal:downloads.signal,onProgress:(info,path)=>track(path)(info)})]).catch(error=>{downloads.abort();restoreLightRendering();renderer.dispose();renderer.domElement.remove();throw error;});
  hdr.mapping=T.EquirectangularReflectionMapping;
@@ -55,7 +58,7 @@ export async function createWorld(container,onProgress=()=>{},reduced,{deferStar
  const time={value:0};createAtmosphere(scene,time);
  const decoder=new DRACOLoader().setDecoderPath(import.meta.env.BASE_URL+'forest/draco/');
  let gltf;
- try{await modelBytes;loadingStage='decode';onProgress(.35,'正在解码群岛模型');await paintLoading();gltf=await loadModel(new GLTFLoader().setDRACOLoader(decoder),import.meta.env.BASE_URL+'aether/aether.glb',{buffer:modelBytes});loadingStage='construction';onProgress(.38,'正在展开群岛模型');await paintLoading();await applyRefinedGroves(gltf.scene,decoder,groveBytes);onProgress(.44,'正在配置森林与建筑材质');await paintLoading();}
+ try{await modelBytes;loadingStage='decode';onProgress(.35,'正在解码群岛模型');await paintLoading();gltf=await loadModel(new GLTFLoader().setDRACOLoader(decoder),import.meta.env.BASE_URL+AETHER_MODEL,{buffer:modelBytes});loadingStage='construction';onProgress(.38,'正在展开群岛模型');await paintLoading();await applyRefinedGroves(gltf.scene,decoder,groveBytes);onProgress(.44,'正在配置森林与建筑材质');await paintLoading();}
  catch(error){downloads.abort();restoreLightRendering();renderer.dispose();renderer.domElement.remove();throw error;}finally{decoder.dispose();}
  const floats=[],waters=[],materials=new Set(),crystal=crystalMaterial(env.texture);let meshes=0,vertices=0;
  gltf.scene.traverse(o=>{
