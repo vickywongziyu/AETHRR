@@ -57,8 +57,15 @@ function room(c,w,d,{tent=false,h=3.3,rugFloor=null,wallInset=.145}={}){
 }
 
 export function createSettlementArchitecture(){
- const mats=createArchitectureMaterials(),records=[],roots=[],seen=new Set();
- function register(region,parent,c,position,yaw=0,info={}){const root=c.finish(parent,position,yaw);roots.push(root);records.push({id:region.id+'-'+records.filter(r=>!r.market&&!r.district).length,region:region.id,name:c.name,root,components:c.parts,roomObstacles:c.roomObstacles,...info});return root;}
+ const mats=createArchitectureMaterials(),records=[],roots=[],seen=new Set(),ordinaryCounts=new Map();
+ // Match the authored map IDs regardless of which region finishes loading first.
+ // Highland's final infrastructure is an ordinary record and retains index 14.
+ const ordinaryOffsets={aether:0,highland:3,forest:15,watercourt:16,valley:22};
+ function register(region,parent,c,position,yaw=0,info={}){
+  const ordinal=ordinaryCounts.get(region.id)||0,suffix=Object.hasOwn(ordinaryOffsets,region.id)?ordinaryOffsets[region.id]+ordinal:records.filter(r=>!r.market&&!r.district).length;
+  ordinaryCounts.set(region.id,ordinal+1);
+  const root=c.finish(parent,position,yaw);roots.push(root);records.push({id:region.id+'-'+suffix,region:region.id,name:c.name,root,components:c.parts,roomObstacles:c.roomObstacles,...info});return root;
+ }
  function* build(region,root){if(seen.has(region.id))return;seen.add(region.id);
   if(region.id==='watercourt'){
    root.traverse(o=>{if(o.isMesh&&PAVILIONS.some(([n])=>o.name.startsWith(n+'_')))hide(o);});
