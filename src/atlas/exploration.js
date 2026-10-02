@@ -153,7 +153,7 @@ export async function createAtlas(world,{sources,time,sun,hillSun,hemisphere,map
  }
  function setMode(value,{preserve=false}={}){
   if(disposed||!['observe','walk','fly'].includes(value)||(FIRST_PERSON&&value==='fly'))return false;if(CHARACTER_ENABLED&&!traveler&&!characterPromise)loadCharacter();clearInput();autopilot=null;
-  if(value===mode)return true;
+  if(value===mode){if(value!=='observe')canvas.focus({preventScroll:true});return true;}
   if(value==='walk'&&isBlocked())return false;
   if(value==='walk'){
    buildings.close();delete document.body.dataset.atlasInspecting;world.visitor?.enter();
@@ -228,6 +228,13 @@ export async function createAtlas(world,{sources,time,sun,hillSun,hemisphere,map
  document.querySelector('[data-panel="worlds"]').onclick=openMap;function useNearbyGate(){const g=gates.find(g=>g.group.position.distanceTo(position)<4);if(g?.run)g.run();else openMap();}gateButton.onclick=useNearbyGate;
  const movement=new Set(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowLeft','ArrowDown','ArrowRight','Space','KeyC','ShiftLeft','ShiftRight']);
  function keyDown(e){if(e.ctrlKey||e.metaKey||e.altKey||/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)||e.target.isContentEditable||isBlocked())return;
+  const interactive=e.target.closest?.('button,a[href],summary,[role="button"],[role="link"],[role="tab"],[role="menuitem"],[role="option"],[role="slider"],[role="spinbutton"],[role="checkbox"],[role="radio"],[role="switch"],[tabindex],[contenteditable]');
+  if(interactive&&interactive!==canvas&&e.code!=='Escape'){
+   // Explicit WASD can resume walking after using a plain UI button; native
+   // activation, arrows and compound-widget keys belong to the focused control.
+   if(!/^(Key[WASD])$/.test(e.code)||!interactive.matches('button:not([role]),a[href]:not([role])')||!readyToWalk())return;
+   canvas.focus({preventScroll:true});
+  }
   if(e.code==='KeyM'){e.preventDefault();e.stopImmediatePropagation();openMap();return;}
   if(mode==='observe'){if(!/^(Key[WASD]|Arrow(Up|Down|Left|Right))$/.test(e.code)||!readyToWalk())return;e.preventDefault();e.stopImmediatePropagation();if(!startWalking())return;}
   if(movement.has(e.code)){e.preventDefault();e.stopImmediatePropagation();keys.add(e.code);autopilot=null;if(!e.code.startsWith('Shift'))stopWalking();}

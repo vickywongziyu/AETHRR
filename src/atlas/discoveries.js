@@ -8,7 +8,7 @@ import './discoveries.css';
 
 export function createDiscoveries(world,{settlements,gathering,buildings,nav,isBlocked,say}){
  const {camera,controls,renderer}=world,canvas=renderer.domElement,store=createDiscoveryStore(),records=[],seen=new Set(),ray=new T.Raycaster(),ndc=new T.Vector2(),point=new T.Vector3();
- let wishSite=null,hovered=null,down=null,lastScan=0,view='journal',previousFocus=null,controlsEnabled=true,draft={text:'',name:''},pendingCelebration=false;
+ let wishSite=null,hovered=null,down=null,lastScan=0,view='journal',previousFocus=null,controlsEnabled=true,draft={text:'',name:''},pendingCelebration=false,focusRequest=0,disposed=false;
  const button=document.createElement('button');button.className='discovery-journal-button';button.textContent='拾遗手记 J';button.setAttribute('aria-label','打开拾遗手记');
  const hint=document.createElement('button');hint.className='discovery-hint';hint.hidden=true;
  const dialog=document.createElement('dialog');dialog.className='discovery-dialog';dialog.setAttribute('aria-labelledby','discovery-title');
@@ -17,13 +17,14 @@ export function createDiscoveries(world,{settlements,gathering,buildings,nav,isB
  const node=(tag,text,cls)=>{const el=document.createElement(tag);if(text!==undefined)el.textContent=text;if(cls)el.className=cls;return el;};
  const action=(text,fn,label)=>{const b=node('button',text);b.type='button';if(label)b.setAttribute('aria-label',label);b.onclick=fn;return b;};
  const progress=()=>store.progress(gathering.store.snapshot().items);
- function show(title,kind){world.atlas?.resources?.cancel();
+ function show(title,kind){focusRequest++;world.atlas?.resources?.cancel();
   world.cancelCameraMotion();gathering.cancel({clearSelection:true});view=kind;dialog.dataset.view=kind;dialog.querySelector('h2').textContent=title;body.replaceChildren();feedback.textContent='';dialog.querySelector('[data-back]').hidden=kind==='journal';
   if(!dialog.open){previousFocus=document.activeElement;controlsEnabled=cameraInputEnabled(world);controls.enabled=false;dialog.showModal();}dialog.querySelector('[data-close]').focus();
  }
- function close(){dialog.close();}
+ function close(){focusRequest++;dialog.close();}
  dialog.querySelector('[data-close]').onclick=close;dialog.querySelector('[data-back]').onclick=showJournal;
- dialog.addEventListener('close',()=>{restoreCameraInput(world,controlsEnabled);if(pendingCelebration){pendingCelebration=false;wishSite?.prop.celebrate();}const target=previousFocus?.isConnected&&!previousFocus.hidden?previousFocus:button;target.focus({preventScroll:true});});
+ dialog.addEventListener('cancel',()=>{focusRequest++;});
+ dialog.addEventListener('close',()=>{if(dialog.open||disposed)return;focusRequest++;restoreCameraInput(world,controlsEnabled);if(pendingCelebration){pendingCelebration=false;wishSite?.prop.celebrate();}const target=previousFocus?.isConnected&&!previousFocus.hidden?previousFocus:button;target.focus({preventScroll:true});});
  dialog.addEventListener('click',e=>{if(e.target!==dialog)return;const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)close();});
  function flowerList(){const list=node('ul',undefined,'discovery-flowers');for(const f of progress()){const li=node('li');li.dataset.collected=String(f.collected);li.append(node('span',f.collected?'✦':'◇'),node('strong',f.name),node('small',f.place));list.append(li);}return list;}
  function showJournal(){
@@ -85,8 +86,19 @@ export function createDiscoveries(world,{settlements,gathering,buildings,nav,isB
   r.root.updateWorldMatrix(true,false);anchor(r);if(camera.position.distanceTo(point)>13)return false;const screen=point.clone().project(camera);if(screen.z< -1||screen.z>1||Math.abs(screen.x)>.98||Math.abs(screen.y)>.95)return false;
   return !nav.obstructed(camera.position,point.clone().lerp(camera.position,.015),.004);
  }
- function focus(id){
-  const r=records.find(r=>r.id===id);if(!r){feedback.textContent='目的地区域仍在加载，请稍后重试。';say('目的地区域仍在加载，请稍后重试。');return false;}
+ async function focus(id){
+  if(disposed)return false;const request=++focusRequest,wasOpen=dialog.open;
+  const current=()=>!disposed&&request===focusRequest&&(!wasOpen||dialog.open);
+  let r=records.find(r=>r.id===id);
+  if(!r){
+   const region=id==='wishing-basin'?'watercourt':DISCOVERIES.find(d=>d.id===id)?.region;
+   if(!region)return false;
+   const message='正在展开目的地，请在原地稍候；关闭手记可取消前往。';feedback.textContent=message;say(message);
+   try{await world.atlas.readyFor(region);}catch{/* Keep the same destination button available for retry. */}
+   if(!current())return false;r=records.find(r=>r.id===id);
+   if(!r){const message='目的地未能加载。你仍在原处，请再次点击同一前往按钮重试。';feedback.textContent=message;say(message);return false;}
+  }
+  if(!current())return false;
   if(dialog.open)close();if(!world.atlas.travel(r.building.region))return false;
   if(!buildings.focus(r.building,true,{lightScale:r.building.region==='aether'?.18:r.kind==='wish'?.35:.75}))return false;r.root.updateWorldMatrix(true,false);const target=anchor(r,new T.Vector3());
   if(['highland','watercourt','valley'].includes(r.building.region)){
@@ -113,5 +125,5 @@ export function createDiscoveries(world,{settlements,gathering,buildings,nav,isB
   const now=performance.now();if(now-lastScan>220){lastScan=now;wishSite?.prop.setFlowers(progress().map(f=>f.collected));if(!hovered||!reachable(hovered))hovered=records.filter(r=>r.kind!=='pedestal'&&reachable(r)).sort((a,b)=>anchor(a,new T.Vector3()).distanceToSquared(camera.position)-anchor(b,new T.Vector3()).distanceToSquared(camera.position))[0]||null;}
   if(!hovered||gathering.stats().selected){hint.hidden=true;return;}const p=anchor(hovered,new T.Vector3()).project(camera);hint.hidden=false;hint.style.left=T.MathUtils.clamp((p.x*.5+.5)*innerWidth,110,innerWidth-110)+'px';hint.style.top=T.MathUtils.clamp((-p.y*.5+.5)*innerHeight-(hovered.wishId?85:48),112,innerHeight-225)+'px';hint.textContent=hovered.wishId?'重读这张心愿 · E':hovered.coinId?'重读纪念币 · E':hovered.kind==='wish'?'听风许愿台 · E':(store.has(hovered.id)?'重读卷轴':'拾取卷轴')+' · E';hint.setAttribute('aria-label',hovered.wishId?'重读这张心愿':hovered.coinId?'重读'+DISCOVERIES.find(d=>d.id===hovered.coinId).title:hovered.kind==='wish'?'打开听风许愿台':'拾取或重读'+hovered.data.title);
  }
- return {button,add,update,focus,showJournal,store,records,clear,stats:()=>({scrolls:store.snapshot().scrolls,wishes:store.snapshot().wishes.length,flowers:progress(),sites:records.filter(r=>r.id).map(r=>({id:r.id,region:r.building.region,position:anchor(r,new T.Vector3()).toArray(),reachable:reachable(r)}))}),dispose(){if(dialog.open)close();for(const r of records){if(r.prop)r.prop.dispose();else{r.root.geometry.dispose();r.root.removeFromParent();}}[button,hint,dialog].forEach(e=>e.remove());canvas.removeEventListener('pointerdown',pointerDown);canvas.removeEventListener('pointerup',pointerUp);canvas.removeEventListener('pointermove',pointerMove);canvas.removeEventListener('pointercancel',clear);window.removeEventListener('blur',clear);window.removeEventListener('keydown',key,true);window.removeEventListener('storage',storage);}};
+ return {button,add,update,focus,showJournal,store,records,clear,stats:()=>({scrolls:store.snapshot().scrolls,wishes:store.snapshot().wishes.length,flowers:progress(),sites:records.filter(r=>r.id).map(r=>({id:r.id,region:r.building.region,position:anchor(r,new T.Vector3()).toArray(),reachable:reachable(r)}))}),dispose(){disposed=true;focusRequest++;if(dialog.open)close();for(const r of records){if(r.prop)r.prop.dispose();else{r.root.geometry.dispose();r.root.removeFromParent();}}[button,hint,dialog].forEach(e=>e.remove());canvas.removeEventListener('pointerdown',pointerDown);canvas.removeEventListener('pointerup',pointerUp);canvas.removeEventListener('pointermove',pointerMove);canvas.removeEventListener('pointercancel',clear);window.removeEventListener('blur',clear);window.removeEventListener('keydown',key,true);window.removeEventListener('storage',storage);}};
 }

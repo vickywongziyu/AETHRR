@@ -9,3 +9,8 @@ body[data-world-shell] #app>header nav{visibility:hidden;pointer-events:none}bod
 @media(min-width:701px){
  body[data-world-shell=true] :is(.quarter-panel,.ferry-panel){left:28px;right:auto;top:110px;box-sizing:border-box;max-height:calc(100dvh - 220px);overflow-y:auto}
 }
+
+/* Recover map assets without restarting the world or losing town progress. */
+.map-recovery{position:absolute;left:8px;top:28px;right:8px;z-index:8;pointer-events:none;font-size:11px;line-height:1.5}
+.map-recovery>div:not([hidden]){display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px;padding:5px 7px;margin-bottom:4px;background:#101b29ef;border:1px solid #baa47770;border-radius:3px}
+.map-recovery button{pointer-events:auto;min-height:44px;padding:5px 8px;border:1px solid #baa47770;border-radius:3px}
