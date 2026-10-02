@@ -20,7 +20,7 @@ function bevelBox(size,r){
 // local Y-up metres; keeping buildings separate permits inspection and culling.
 export function createArchitectureMaterials(){
  const palette={pathstone:'#626253',pathlight:'#797663',stone:'#9a9e95',pale:'#c1bba3',darkstone:'#535e62',vault:'#a9a28b',wood:'#73513a',endgrain:'#ac8860',roof:'#486575',trim:'#a49468',iron:'#404744',leather:'#9d8863',red:'#874c3d',cloth:'#536b78',paper:'#c3b388',glass:'#f6c780',azure:'#77cecd',amethyst:'#ae83d1',snow:'#d3dedc'};
- const suffix=innerWidth<700?'-mobile':'',mats={},loader=new T.TextureLoader(),woodMap=loader.load(import.meta.env.BASE_URL+'atlas/textures/timber-color'+suffix+'.jpg'),woodNormal=loader.load(import.meta.env.BASE_URL+'atlas/textures/timber-normal'+suffix+'.jpg');woodMap.colorSpace=T.SRGBColorSpace;for(const map of [woodMap,woodNormal]){map.wrapS=map.wrapT=T.RepeatWrapping;map.anisotropy=8;}
+ const suffix=innerWidth<700?'-mobile':'-web',mats={},loader=new T.TextureLoader(),woodMap=loader.load(import.meta.env.BASE_URL+'atlas/textures/timber-color'+suffix+'.jpg'),woodNormal=loader.load(import.meta.env.BASE_URL+'atlas/textures/timber-normal'+suffix+'.jpg');woodMap.colorSpace=T.SRGBColorSpace;for(const map of [woodMap,woodNormal]){map.wrapS=map.wrapT=T.RepeatWrapping;map.anisotropy=8;}
  for(const [kind,color] of Object.entries(palette)){
   const m=new T.MeshStandardMaterial({color,roughness:kind==='iron'?.62:kind==='glass'?.3:.86,metalness:['iron','trim'].includes(kind)?.45:0});m.name='Craft · '+kind;
   if(['glass','azure','amethyst'].includes(kind)){m.emissive.set(color);m.emissiveIntensity=kind==='glass'?.65:.35;}

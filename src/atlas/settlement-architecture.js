@@ -10,6 +10,7 @@ import {shelvedBook} from './building-fixtures.js';
 import {groundedRoomRug} from './soft-furnishing.js';
 import {snowCap,logCabinRoofUnderlay,roofChimney} from './winter-roof.js';
 import {removeLegacyTentParts,tailoredTent,tentEntry} from './tent-refinement.js';
+import {connectWatercourtPaths} from './watercourt-paths.js';
 
 const PAVILIONS=[
  ['West_foreground_rotunda','西岸会客亭',-10,-10,2.35,3.4,.1],
@@ -63,6 +64,7 @@ export function createSettlementArchitecture(){
    root.traverse(o=>{if(o.isMesh&&PAVILIONS.some(([n])=>o.name.startsWith(n+'_')))hide(o);});
    root.traverse(o=>{if(!o.isMesh||!/_moulding$|_paving$/.test(o.name))return;pruneTriangles(o,ps=>{const mid=ps[0].clone().add(ps[1]).add(ps[2]).multiplyScalar(1/3);return PAVILIONS.some(([,name,x,y,r,h,z])=>Math.hypot(mid.x-x,mid.z+y)<r+.12&&mid.y>z+.3);});});
    for(const[,name,x,y,r,h,z]of PAVILIONS){const c=new Craft(mats,name);pavilion(c,r,h,.65,{gold:true});register(region,root,c,[x,z,-y],0,{type:'pavilion',interior:[0,2.18,r*.61],target:[0,2.05,-r*.42],exterior:[r*3.25,h*1.72,r*3.2],look:[0,h*.80,0],radius:r,height:h+.65});}
+   connectWatercourtPaths(root,mats);
   }
   if(region.id==='highland'){
    root.traverse(o=>{if(o.isMesh&&/^HC roof/.test(o.material?.name||''))hide(o);});

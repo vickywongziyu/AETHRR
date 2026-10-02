@@ -55,7 +55,7 @@ body[data-visitor-camera=first-person][data-atlas-mode=walk] .atlas-reticle{disp
 body[data-visitor-camera=first-person] .atlas-controls button:focus-visible{outline:2px solid #e2c790;outline-offset:2px}
 @media(max-width:700px){
  body[data-world-shell=true] .atlas-message{left:12px;top:90px;transform:none;width:max-content;max-width:calc(100vw - 198px);box-sizing:border-box;padding:8px 10px}
- body[data-world-shell=true] .woodland-gate-label{max-width:180px;white-space:normal;word-break:keep-all;box-sizing:border-box}
+ body[data-world-shell=true] .woodland-gate-label{max-width:180px;white-space:pre-line;word-break:keep-all;box-sizing:border-box;line-height:1.5;text-align:center}
  body[data-visitor-camera=first-person] .atlas-controls{max-height:45dvh;overflow-y:auto}
  body[data-visitor-camera=first-person] .atlas-entry-actions button{min-height:44px}
  body[data-visitor-camera=first-person] .visitor-tools{bottom:calc(var(--visitor-panel-height,180px) + 28px + env(safe-area-inset-bottom))}
@@ -90,4 +90,11 @@ body[data-visitor-camera=first-person] .atlas-controls button:focus-visible{outl
  body[data-visitor-camera=first-person] .visitor-tools{left:16px;bottom:12px}
  body[data-visitor-camera=first-person] .visitor-tools button:not(.visitor-hide){display:none}
  body[data-visitor-camera=first-person][data-atlas-mode=walk] .atlas-pad{left:16px;bottom:70px}
+}
+
+/* Phones: while a building or town panel is open it is the only control surface needed (its × or 外观 returns),
+   so the bottom controls, tool row and minimap step aside and the panel sits at the bottom edge. */
+@media(max-width:700px){
+ body[data-atlas-inspecting=true] .visitor-tools,body[data-atlas-inspecting=true] .atlas-controls,body[data-atlas-inspecting=true] .world-minimap{display:none!important}
+ body[data-atlas-inspecting=true] :is(.fgarden-panel,.vtown-panel,.quarter-panel,.star-hall-panel,.architecture-inspection){bottom:calc(16px + env(safe-area-inset-bottom))!important;max-height:46dvh;overflow:auto}
 }

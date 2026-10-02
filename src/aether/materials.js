@@ -3,7 +3,7 @@ import * as T from 'three';
 import { noiseGLSL } from './atmosphere.js';
 export async function loadSurfaceMaps(options={}){
  const loader=new T.TextureLoader(),base=import.meta.env.BASE_URL+'aether/textures/';
- const [color,normal,rough]=await Promise.all(['rock-color.jpg','rock-normal.jpg','rock-rough.jpg'].map(p=>loadBinaryResource(loader,base+p,options)));
+ const [color,normal,rough]=await Promise.all(['rock-color-web.jpg','rock-normal-web.jpg','rock-rough-web.jpg'].map(p=>loadBinaryResource(loader,base+p,{...options,onProgress:options.onProgress&&(info=>options.onProgress(info,'aether/textures/'+p))})));
  color.colorSpace=T.SRGBColorSpace;
  for(const map of [color,normal,rough]){map.wrapS=map.wrapT=T.RepeatWrapping;map.anisotropy=8;}
  return {color,normal,rough,dispose(){color.dispose();normal.dispose();rough.dispose();}};

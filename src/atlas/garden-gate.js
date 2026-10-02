@@ -103,7 +103,8 @@ export function createGardenGate({world,source,nav,time,regions,atlasGates,activ
  const first=doorway(time);first.group.position.set(-25.6,ground,-22.8);first.group.rotation.y=-.66;scene.add(first.group);
  first.sourceRegion='aether';first.label='前往紫境';first.destination='forest';first.run=()=>activate('forest',first);first.anchor=first.group.position.clone();
  const gates=[first],ray=new T.Raycaster(),ndc=new T.Vector2(),point=new T.Vector3();let down,lastUI=-1,returnGate,disposed=false;
- function addButton(g){const button=document.createElement('button');button.className='woodland-gate-label';button.textContent=g.label+' · 点击传送';button.setAttribute('aria-label',g.label+'，通过传送门');button.dataset.gateDestination=g.destination;button.hidden=true;button.onclick=()=>g.run();document.body.append(button);g.button=button;}
+ const gateSep=()=>innerWidth<=700?'\n':' · ';
+ function addButton(g){const button=document.createElement('button');button.className='woodland-gate-label';button.textContent=g.label+gateSep()+'点击传送';button.setAttribute('aria-label',g.label+'，通过传送门');button.dataset.gateDestination=g.destination;button.hidden=true;button.onclick=()=>g.run();document.body.append(button);g.button=button;}
  addButton(first);
  function hit(e){const rect=canvas.getBoundingClientRect();ndc.set((e.clientX-rect.left)/rect.width*2-1,1-(e.clientY-rect.top)/rect.height*2);ray.setFromCamera(ndc,camera);
   const hits=ray.intersectObjects(gates.map(g=>g.surface),false);if(!hits.length)return;
@@ -128,6 +129,9 @@ export function createGardenGate({world,source,nav,time,regions,atlasGates,activ
    // Reuse each landscape's established lakeshore/summit portal viewpoint.
    const position=new T.Vector3(...g.region.portalSite.view).multiplyScalar(g.region.scale).add(new T.Vector3(...g.region.offset));
    g.group.rotation.y=Math.atan2(position.x-target.x,position.z-target.z);g.arrival={position,target};
+   // North Valley: the summit viewpoint only showed the gate against empty sky. Keep the gate's
+   // orientation, but arrive as if just stepping out of it, looking down on Snowcedar town and the river.
+   if(g.region.id==='valley'){const local=v=>new T.Vector3(...v).multiplyScalar(g.region.scale).add(new T.Vector3(...g.region.offset));g.arrival={position:local([-29.2,78.5,-29.2]),target:local([20,24.6,-33.8]),gate:{position,target}};}
    gates.push(g);addButton(g);
   }
   first.surface.material.uniforms.gateActive.value=forest.status==='ready'?1:0;
@@ -155,7 +159,7 @@ export function createGardenGate({world,source,nav,time,regions,atlasGates,activ
     g.button.style.left=x+'px';g.button.style.top=y+'px';
    }
   }
-  for(const g of gates){const r=regions.find(r=>r.id===g.destination);g.button.textContent=r.status==='loading'?g.label+' · 正在连接…':r.status==='error'?g.label+' · 重新连接':g.label+' · 点击传送';}
+  for(const g of gates){const r=regions.find(r=>r.id===g.destination);g.button.textContent=r.status==='loading'?g.label+gateSep()+'正在连接…':r.status==='error'?g.label+gateSep()+'重新连接':g.label+gateSep()+'点击传送';}
   document.body.dataset.routeGateVisible=String(gates.some(g=>!g.button.hidden));
   document.body.dataset.gardenGateVisible=String(!first.button.hidden);
  }

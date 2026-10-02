@@ -1,4 +1,4 @@
-import {fetchModel,loadModel,loadBinaryResource,paintLoading,transferText} from '../atlas/asset-loading.js';
+import {fetchModel,loadModel,loadBinaryResource,paintLoading,transferText,expectedBytes} from '../atlas/asset-loading.js';
 import * as T from 'three';
 import {omitInactiveLights} from './active-lights.js';
 import {createAtlas} from '../atlas/exploration.js';
@@ -19,16 +19,20 @@ import { createAtmosphere, waterfallMaterial } from './atmosphere.js';
 const vec=a=>new T.Vector3(...a);
 export async function createWorld(container,onProgress=()=>{},reduced,{deferStart=false}={}){
  const mobile=innerWidth<700,captureMode=new URLSearchParams(location.search).has('capture');
- const renderer=new T.WebGLRenderer({antialias:true,powerPreference:'high-performance',preserveDrawingBuffer:true});
+ // capture() reads pixels in the same task as draw(), so the drawing buffer only needs preserving for frame exports.
+ const renderer=new T.WebGLRenderer({antialias:true,powerPreference:'high-performance',preserveDrawingBuffer:captureMode});
  const restoreLightRendering=omitInactiveLights(renderer);
  renderer.setPixelRatio(Math.min(devicePixelRatio,mobile?1.25:1.5));renderer.setSize(innerWidth,innerHeight);renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.02;renderer.outputColorSpace=T.SRGBColorSpace;
  renderer.info.autoReset=false;renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;container.appendChild(renderer.domElement);
  const scene=new T.Scene();
  let loadingStage='download';const downloads=new AbortController();
- const prefetch=path=>{const p=fetchModel(import.meta.env.BASE_URL+path,{signal:downloads.signal,onProgress:info=>{if(path==='aether/aether.glb'&&loadingStage==='download')onProgress(.04+.30*(info.total?info.loaded/info.total:0),'正在下载群岛与建筑',transferText(info));}});p.catch(()=>{});return p;};
+ // One progress figure for every base download (models, sky and rock maps), using build-time sizes when the server omits Content-Length.
+ const baseFiles=['aether/aether.glb','aether/refined-groves-v24.glb','highland/horncrest.glb','aether/textures/sky.hdr','aether/textures/rock-color-web.jpg','aether/textures/rock-normal-web.jpg','aether/textures/rock-rough-web.jpg'],transfers=new Map(baseFiles.map(f=>[f,{loaded:0,total:expectedBytes(f)}]));
+ const track=path=>info=>{if(info.phase!=='download')return;const entry=transfers.get(path);entry.loaded=info.loaded;if(info.total)entry.total=Math.max(entry.total,info.total);if(loadingStage!=='download')return;let loaded=0,total=0;for(const e of transfers.values()){loaded+=e.loaded;total+=e.total||e.loaded;}onProgress(.04+.30*(total?Math.min(1,loaded/total):0),'正在下载群岛与建筑',transferText({phase:'download',loaded,total}));};
+ const prefetch=path=>{const p=fetchModel(import.meta.env.BASE_URL+path,{signal:downloads.signal,onProgress:track(path)});p.catch(()=>{});return p;};
  const modelBytes=prefetch('aether/aether.glb'),groveBytes=prefetch('aether/refined-groves-v24.glb'),hillBytes=prefetch('highland/horncrest.glb');
  onProgress(.02,'正在下载模型、天空与材质');await paintLoading();
- const [hdr,maps]=await Promise.all([loadBinaryResource(new HDRLoader(),import.meta.env.BASE_URL+'aether/textures/sky.hdr',{signal:downloads.signal}),loadSurfaceMaps({signal:downloads.signal})]).catch(error=>{downloads.abort();restoreLightRendering();renderer.dispose();renderer.domElement.remove();throw error;});
+ const [hdr,maps]=await Promise.all([loadBinaryResource(new HDRLoader(),import.meta.env.BASE_URL+'aether/textures/sky.hdr',{signal:downloads.signal,onProgress:track('aether/textures/sky.hdr')}),loadSurfaceMaps({signal:downloads.signal,onProgress:(info,path)=>track(path)(info)})]).catch(error=>{downloads.abort();restoreLightRendering();renderer.dispose();renderer.domElement.remove();throw error;});
  hdr.mapping=T.EquirectangularReflectionMapping;
  const pmrem=new T.PMREMGenerator(renderer),env=pmrem.fromEquirectangular(hdr);pmrem.dispose();
  scene.environment=env.texture;scene.environmentIntensity=.38;scene.background=hdr;scene.backgroundIntensity=1.65;scene.backgroundRotation.y=-.85;scene.environmentRotation.y=-.85;

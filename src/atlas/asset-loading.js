@@ -1,3 +1,7 @@
+// Build-time byte counts (scripts/vite.worlds.config.js). Vercel serves static
+// files with br Content-Encoding and no Content-Length, so progress needs them.
+const EXPECTED=typeof __ASSET_BYTES__==='object'&&__ASSET_BYTES__?__ASSET_BYTES__:{};
+export function expectedBytes(url){const m=String(url).match(/(?:^|\/)((?:aether|atlas|highland|forest|watercourt|character|assets)\/[^?#]+)/);return m?EXPECTED[m[1]]||0:0;}
 // Transfer compression is lossless: parsing receives the original GLB bytes.
 // The .bin suffix avoids servers treating .gz as an HTTP Content-Encoding.
 export async function fetchBytes(url,{onProgress=()=>{},signal,timeout=45000,compressed=false,validateGLB=false}={}){
@@ -8,8 +12,9 @@ export async function fetchBytes(url,{onProgress=()=>{},signal,timeout=45000,com
   touch();onProgress({loaded:0,total:0,phase:'download'});
   const response=await fetch(url+(compressed?'.bin':''),{signal:controller.signal});
   if(!response.ok)throw new Error(`资源下载失败（${response.status}），请重试`);
-  const total=Number(response.headers.get('content-length'))||0,reader=response.body?.getReader(),chunks=[];
-  if(reader){while(true){const {value,done}=await reader.read();if(done)break;touch();loaded+=value.byteLength;chunks.push(value);onProgress({loaded,total,phase:'download'});}}
+  // With Content-Encoding the header length is the encoded size, while the reader counts decoded bytes.
+  const header=response.headers.get('content-encoding')?0:Number(response.headers.get('content-length'))||0,total=header||expectedBytes(url+(compressed?'.bin':'')),reader=response.body?.getReader(),chunks=[];
+  if(reader){while(true){const {value,done}=await reader.read();if(done)break;touch();loaded+=value.byteLength;chunks.push(value);onProgress({loaded,total:total&&Math.max(total,loaded),phase:'download'});}}
   else{const value=new Uint8Array(await response.arrayBuffer());chunks.push(value);loaded=value.length;}
   clearTimeout(timer);const bytes=new Uint8Array(loaded);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}chunks.length=0;
   onProgress({loaded,total:loaded,phase:'decode'});

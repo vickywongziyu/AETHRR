@@ -265,7 +265,7 @@ export async function createAtlas(world,{sources,time,sun,hillSun,hemisphere,map
   const running=keys.has('ShiftLeft')||keys.has('ShiftRight');
   if(walkTarget&&mode==='walk'){
    const dx=walkTarget.x-position.x,dz=walkTarget.z-position.z,distance=Math.hypot(dx,dz),step=Math.min(distance,(running?3.6:2.2)*dt);
-   const targetY=nav.height(walkTarget.x,walkTarget.z,walkTarget.y+.8,walkTarget.y-.8)??walkTarget.y,scale=distance>1e-6?step/distance:0;
+   const targetY=nav.supportHeight(walkTarget.x,walkTarget.z,walkTarget.y+.8,walkTarget.y-.8)??walkTarget.y,scale=distance>1e-6?step/distance:0;
    // Nearby in XZ can still mean standing one tread above/below the target.
    if(distance<.13&&Math.abs(position.y-targetY)<.08)stopWalking();
    else if(!nav.walk(position,dx*scale,dz*scale)){blocked=true;stopWalking();say('前方有障碍或落差，已停下。请点选另一处地面绕行。');}
@@ -290,7 +290,7 @@ export async function createAtlas(world,{sources,time,sun,hillSun,hemisphere,map
      else{eye.copy(position).y+=1.65;next.copy(eye).add(velocity);next.y=T.MathUtils.clamp(next.y,-20,220);if(next.x< -155||next.x>980||next.z< -700||next.z>420){blocked=true;break;}if(!nav.canFly(position,new T.Vector3(next.x,next.y-1.65,next.z))){blocked=true;break;}position.copy(next).y-=1.65;}
     }
    }
-   if(mode==='walk'){const h=nav.height(position.x,position.z,position.y+.5,position.y-.7);if(h!==null)position.y=h;}
+   if(mode==='walk'){const h=nav.supportHeight(position.x,position.z,position.y+.43,position.y-.65);if(h!==null)position.y=h;}
   }
   const moving=Math.hypot(position.x-beforeMove.x,position.z-beforeMove.z)>1e-5;
   verticalSpeed=mode==='fly'&&dt>0?(position.y-beforeMove.y)/dt:0;

@@ -5,13 +5,14 @@ import {DRACOLoader} from 'three/addons/loaders/DRACOLoader.js';
 import {detailSurface as forestSurface} from '../forest/surfaces.js';
 import {detailSurface as gardenSurface} from '../watercourt/surfaces.js';
 import {addRiverside} from './riverside.js';
+import {clearPathTrees} from './path-clearance.js';
 import {winterVegetation} from '../valley/winter-vegetation.js';
 
 export const REGIONS=[
  {id:'aether',name:'浮空群岛',en:'AETHER',color:'#7cd3df',center:[0,15,0],spawn:[-17,8,20],look:[-17,12,-15],view:[18,22,36],radius:115},
  {id:'highland',name:'牛角山城',en:'HORNCREST',color:'#d9be88',center:[0,18,150],spawn:[0,12,137],look:[0,17,172],view:[-55,47,100],radius:100},
  {id:'forest',name:'紫境森林',en:'VIOLET SANCTUARY',color:'#cd94df',center:[430,0,94],offset:[430,0,150],scale:2.5,spawn:[430,3,165],look:[430,10,70],view:[370,48,205],radius:125,asset:'forest/violet-sanctuary.glb'},
- {id:'watercourt',portalSite:{xz:[-23,-27],view:[-31,5.2,-35],scale:.62*1.6},name:'精灵水庭',en:'ELVEN WATERCOURT',color:'#e9d2a4',center:[100,8,-511],offset:[100,8,-490],scale:1.6,spawn:[100,13,-459],look:[95,19,-511],view:[127,47,-445],radius:115,asset:'watercourt/watercourt.glb'},
+ {id:'watercourt',portalSite:{xz:[-23,-27],view:[-31,5.2,-35],scale:.62*1.6},name:'精灵水庭',en:'ELVEN WATERCOURT',color:'#e9d2a4',center:[100,8,-511],offset:[100,8,-490],scale:1.6,spawn:[62.81,9.02,-454.83],look:[84,10,-474],view:[127,47,-445],radius:115,asset:'watercourt/watercourt.glb'},
  {id:'valley',portalSite:{xz:[-43,-63],view:[-32,70,-48],scale:.55*.65},name:'北境河谷',en:'NORTH VALLEY',color:'#abc5c9',center:[790,0,110],offset:[790,0,140],scale:.65,spawn:[810,8,175],look:[790,17,102],view:[820,32,191],radius:150,asset:'atlas/north-valley.glb'},
 ];
 
@@ -24,6 +25,8 @@ export async function loadRegion(region,time,onProgress){
   const key=o.geometry.uuid+o.material.uuid;let g=groups.get(key);if(!g)groups.set(key,g={geometry:o.geometry,material:o.material,items:[],name:o.name});
   if(o.isInstancedMesh){const m=new T.Matrix4();for(let i=0;i<o.count;i++){o.getMatrixAt(i,m);g.items.push(o.matrixWorld.clone().multiply(m));}}else g.items.push(o.matrixWorld.clone());
  });
+ // Small understory trees scattered onto paved walkways block the entrance and bridges.
+ if(region.id==='watercourt')region.pathTrees=clearPathTrees(source,groups);
  // Spatial batches keep off-screen trees out of every main/transmission pass.
  // Geometry, materials and all instance transforms remain unchanged.
  const batches=[];
