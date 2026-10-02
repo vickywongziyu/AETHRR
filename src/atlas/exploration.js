@@ -36,17 +36,17 @@ const FIRST_PERSON=!CHARACTER_ENABLED, EYE_HEIGHT=1.65;
 export async function createAtlas(world,{sources,time,sun,hillSun,hemisphere,maps,onProgress=()=>{}}){
  const {scene,camera,controls,renderer}=world,nav=createNavigation(),regions=REGIONS.map(r=>({...r,status:r.asset?'idle':'ready'}));
  // Keep the original Aether–Horncrest stair bridges. New links to Violet remain absent.
- const removedBridgeTriangles=0;
+ const removedBridgeTriangles=0;let initializing=true;
  // Highland paths must sample the finished cliff mesh, including its ledges.
  onProgress(.53,'正在构建山城地形');await paintLoading();
  const geology=createGeology(maps);geology.add(regions[1],sources[1]);
  onProgress(.56,'正在布置建筑与室内空间');await paintLoading();
- const settlements=createSettlementArchitecture();sources.forEach((root,i)=>settlements.add(regions[i],root));
+ const settlements=createSettlementArchitecture();for(const [i,root]of sources.entries()){await settlements.addAsync(regions[i],root,{yieldWork:paintLoading});await paintLoading();}
  await paintLoading();
  const refraction=createCrystalRefraction(world,sources);
  const details=createRegionalDetails(world,settlements,time);sources.forEach((root,i)=>details.add(regions[i],root));
  geology.add(regions[0],sources[0]);
- const vegetation=createVegetationClearance();for(const [i,root] of sources.entries()){onProgress(.60+i*.04,'正在准备'+regions[i].name+'的道路与碰撞');await paintLoading();nav.add(root);if(CHARACTER_ENABLED)vegetation.add(root);}
+ const vegetation=createVegetationClearance();for(const [i,root] of sources.entries()){onProgress(.60+i*.04,'正在准备'+regions[i].name+'的道路与碰撞');await paintLoading();await nav.addAsync(root,{yieldWork:paintLoading,budgetMs:16});if(CHARACTER_ENABLED)vegetation.add(root);}
  onProgress(.69,'正在准备地图与城镇互动');await paintLoading();
  const canvas=renderer.domElement,keys=new Set(),position=new T.Vector3(),forward=new T.Vector3(),right=new T.Vector3(),velocity=new T.Vector3(),next=new T.Vector3(),euler=new T.Euler(0,0,0,'YXZ');
  const originalFog=scene.fog.color.clone(),purple=new T.Color('#4d355c');let walkTarget=null;let mode='observe',yaw=0,pitch=0,drag=null,autopilot=null,current='aether',blocked=false,disposed=false,mapFocus=null;
@@ -54,7 +54,7 @@ export async function createAtlas(world,{sources,time,sun,hillSun,hemisphere,map
  const outdoorNear=camera.near;
  const eye=new T.Vector3(),aim=new T.Vector3(),desiredCamera=new T.Vector3(),cameraDirection=new T.Vector3(),beforeMove=new T.Vector3(),facing=new T.Vector3(),cameraDistance=4.6;
  const paths=[],gates=[],light=new T.DirectionalLight('#ffe0bc',0);light.position.set(0,80,0);scene.add(light,light.target);
- const ui=document.createElement('section');ui.className='atlas-controls';ui.setAttribute('aria-label','世界探索方式');
+ const ui=document.createElement('section');ui.className='atlas-controls';ui.inert=true;ui.setAttribute('aria-label','世界探索方式');
  ui.innerHTML=`<div class="atlas-location"><i></i><span>浮空群岛</span><small>${CHARACTER_ENABLED?'米拉 · 旅人':'风景漫游'}</small></div><div class="atlas-entry-actions"><button data-mode="walk">自由探索</button>${CHARACTER_ENABLED?'<button data-mode="fly">自由飞行</button>':''}<button data-mode="observe" aria-pressed="true">观景</button><button class="atlas-guide">城镇导览</button><button class="atlas-safe">安全返回</button></div><div class="atlas-modes"><button class="atlas-map-open">地图 <span>M</span></button></div><p class="atlas-help">${CHARACTER_ENABLED?'选择步行或飞行，走进这片世界。':'拖动环顾 · 滚轮缩放 · 点击传送门前往下一片风景'}</p>`;
  ui.dataset.character=CHARACTER_ENABLED?'loading':'disabled';document.body.dataset.visitorCamera=FIRST_PERSON?'first-person':'third-person';ui.dataset.mode='observe';document.body.dataset.atlasMode='observe';
  const reticle=document.createElement('div');reticle.className='atlas-reticle';reticle.setAttribute('aria-hidden','true');
@@ -66,15 +66,18 @@ export async function createAtlas(world,{sources,time,sun,hillSun,hemisphere,map
  document.body.append(ui,message,map,reticle,pad,gateButton);
  const transition=createWorldTransition(),portalPassage=createPortalPassage(world,nav);
  const gathering=createGathering({world,nav,time,isBlocked,say});
+ await paintLoading();
  const environment=createFantasyEnvironment({world,time,sun,hillSun,hemisphere,regionalLight:light,gathering,surfaceMaps:maps});
  const buildings=createBuildingInspection(world,settlements,{gathering,isBlocked,getRegion:()=>current,nav});
  const discoveries=createDiscoveries(world,{settlements,gathering,buildings,nav,isBlocked,say});regions.slice(0,2).forEach(r=>discoveries.add(r));
  const town=createTownLife(world,{settlements,gathering,buildings,nav,isBlocked,say});regions.slice(0,2).forEach(r=>town.add(r));
+ await paintLoading();
  const market=createMarket(world,{settlements,source:sources[1],nav,buildings,gathering,isBlocked,say});
  const housing=createHousing(world,{settlements,market,nav,buildings,gathering,isBlocked,say});
  const quarter=createWaterfrontQuarter(world,{settlements,nav,buildings,gathering,isBlocked,say,environment});
  const valleyTown=createValleyTownLife(world,{settlements,nav,buildings,gathering,market,environment,isBlocked,say});
  const forestGarden=createForestGarden(world,{settlements,nav,buildings,gathering,market,town,isBlocked,say});
+ await paintLoading();
  const starHall=createStarHall(world,{source:sources[0],settlements,nav,buildings,market,gathering,environment,isBlocked,say});
  const resources=createResources(world,{settlements,nav,market,gathering,town,isBlocked,say,surfaceMaps:maps});
  const objectives=createObjectives(world,{gathering,town,market,discoveries,resources,valleyTown,getRegion:()=>current,isBlocked,say});
@@ -109,7 +112,7 @@ export async function createAtlas(world,{sources,time,sun,hillSun,hemisphere,map
  let messageTimer;function say(text){message.textContent=text;clearTimeout(messageTimer);messageTimer=setTimeout(()=>message.textContent='',4000);}
  function stopWalking(){walkTarget=null;walkMarker.visible=false;}
  function clearInput(){stopWalking();keys.clear();if(drag&&canvas.hasPointerCapture(drag[4]))canvas.releasePointerCapture(drag[4]);drag=null;}
- function isBlocked(){return transition.busy||document.body.dataset.starObserving==='true'||document.body.dataset.resourceBusy==='true'||document.body.dataset.townBusy==='true'||document.body.dataset.homeEditing==='true'||!!document.querySelector('dialog[open]');}
+ function isBlocked(){return initializing||!!document.querySelector('.loading:not(.done)')||transition.busy||document.body.dataset.starObserving==='true'||document.body.dataset.resourceBusy==='true'||document.body.dataset.townBusy==='true'||document.body.dataset.homeEditing==='true'||!!document.querySelector('dialog[open]');}
  function nearest(p){return regions.reduce((a,r)=>Math.hypot(p.x-r.center[0],p.z-r.center[2])<Math.hypot(p.x-a.center[0],p.z-a.center[2])?r:a,regions[0]);}
  function orient(target){camera.lookAt(new T.Vector3(...target));euler.setFromQuaternion(camera.quaternion);yaw=euler.y;pitch=euler.x;}
  function followCamera(dt=0,snap=false){
@@ -201,7 +204,7 @@ export async function createAtlas(world,{sources,time,sun,hillSun,hemisphere,map
  async function load(r){if(r.promise)return r.promise;r.status='loading';updateCard(r);
   // Don't overlap Draco decoding and multi-million-triangle construction for
   // rapid map selections or all-world callers: their transient heaps add up.
-  r.promise=regionLoadQueue.then(async()=>{try{if(disposed)return;const root=await loadRegion(r,time,p=>{r.progress=p;onProgress(.75+.12*(p.total?p.loaded/p.total:0),'正在载入'+r.name,transferText(p));});if(disposed)return;onProgress(.88,'正在布置'+r.name+'的建筑');await paintLoading();settlements.add(r,root);quarter.add(r,root);valleyTown.add(r,root);forestGarden.add(r,root);details.add(r,root);r.root=root;scene.add(root);onProgress(.91,'正在准备'+r.name+'的道路与碰撞');await paintLoading();nav.add(root);if(CHARACTER_ENABLED)vegetation.add(root);prepareLanding(r);onProgress(.94,'正在准备'+r.name+'的城镇互动');await paintLoading();gathering.add(r,root);valleyTown.reserveFlora(r);forestGarden.reserveFlora(r);environment.add(r,root);details.enableLOD(r);discoveries.add(r);town.add(r);resources.add(r,root);refraction.add(scene);r.status='ready';}
+  r.promise=regionLoadQueue.then(async()=>{try{if(disposed)return;const root=await loadRegion(r,time,p=>{r.progress=p;onProgress(.75+.12*(p.total?p.loaded/p.total:0),'正在载入'+r.name,transferText(p));});if(disposed)return;onProgress(.88,'正在布置'+r.name+'的建筑');await paintLoading();await settlements.addAsync(r,root,{yieldWork:paintLoading});if(disposed)return;quarter.add(r,root);valleyTown.add(r,root);forestGarden.add(r,root);details.add(r,root);r.root=root;scene.add(root);onProgress(.91,'正在准备'+r.name+'的道路与碰撞');await paintLoading();await nav.addAsync(root,{yieldWork:paintLoading,budgetMs:16});if(disposed)return;if(CHARACTER_ENABLED)vegetation.add(root);prepareLanding(r);onProgress(.94,'正在准备'+r.name+'的城镇互动');await paintLoading();gathering.add(r,root);await paintLoading();if(disposed)return;valleyTown.reserveFlora(r);forestGarden.reserveFlora(r);environment.add(r,root);details.enableLOD(r);await paintLoading();if(disposed)return;discoveries.add(r);town.add(r);resources.add(r,root);refraction.add(scene);r.status='ready';}
    catch(error){r.status='error';r.error=error;console.warn('Atlas region unavailable:',r.id,error);say(r.name+'暂未加载，地图中可重试。');}finally{r.promise=null;updateCard(r);}});regionLoadQueue=r.promise;return r.promise;
  }
  function travel(id,method='teleport'){
@@ -324,5 +327,6 @@ export async function createAtlas(world,{sources,time,sun,hillSun,hemisphere,map
   const shadowNow=performance.now()/1000;
   if(shadowNow-shadowTime>.4){for(const lamp of [sun,hillSun,light])lamp.shadow.needsUpdate=lamp.intensity>.04;renderer.shadowMap.needsUpdate=true;shadowTime=shadowNow;}
  }
+ initializing=false;ui.inert=false;
  return {get ready(){return allReady??=Promise.all([...regions.filter(r=>r.asset).map(r=>readyFor(r.id)),...(CHARACTER_ENABLED?[loadCharacter()]:[])]);},readyFor,objectives,nav,regions,paths,gates,gathering,environment,settlements,geology,details,refraction,buildings,discoveries,town,market,housing,quarter,valleyTown,forestGarden,starHall,resources,transition,gardenGate,portalWindows,removedBridgeTriangles,position,setMode,travel,openMap,update,beforeRender,get mode(){return mode;},get active(){return mode!=='observe';},stats:()=>({mode,character:ui.dataset.character,animation:traveler?.animation,region:current,position:position.toArray(),blocked,walkTarget:walkTarget?.toArray()||null,autopilot:!!autopilot,regions:regions.map(r=>({id:r.id,status:r.status,landing:r.landing?.toArray()})),paths:paths.length,removedBridgeTriangles,navigation:nav.stats()}),dispose(){disposed=true;canvas.removeEventListener('pointerdown',rightWalk,true);canvas.removeEventListener('contextmenu',walkContext);walkMarker.removeFromParent();walkMarker.geometry.dispose();walkMarker.material.dispose();panelSize.disconnect();objectives.dispose();starHall.dispose();resources.dispose();valleyTown.dispose();forestGarden.dispose();quarter.dispose();portalPassage.dispose();portalWindows.dispose();housing.dispose();market.dispose();town.dispose();discoveries.dispose();refraction.dispose();buildings.dispose();details.dispose();settlements.dispose();geology.dispose();gathering.dispose();environment.dispose();transition.dispose();gardenGate.dispose();traveler?.dispose();clearInput();clearTimeout(messageTimer);[ui,reticle,message,map,pad,gateButton].forEach(el=>el.remove());window.removeEventListener('keydown',keyDown,true);window.removeEventListener('keyup',keyUp,true);window.removeEventListener('blur',clearInput);document.removeEventListener('visibilitychange',clearInput);canvas.removeEventListener('pointerdown',down);canvas.removeEventListener('pointermove',move);canvas.removeEventListener('pointerup',release);canvas.removeEventListener('pointercancel',release);}};
 }

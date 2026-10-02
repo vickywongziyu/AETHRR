@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import { fileURLToPath } from 'node:url';
 import { cpSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
+import { createHash } from 'node:crypto';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const copied = ['forest', 'watercourt', 'aether', 'highland', 'character', 'atlas'];
 const packed = ['aether','highland','forest','watercourt','valley'].map(id=>'atlas/miniatures/'+id+'.glb').concat('atlas/north-valley.glb');
@@ -12,10 +13,12 @@ const packedBytes = new Map(packed.map(file => [file, gzipSync(readFileSync(root
 const assetBytes = {};
 const walk = dir => { for (const name of readdirSync(root+'public/'+dir)) { const rel = dir+'/'+name, s = statSync(root+'public/'+rel); if (s.isDirectory()) walk(rel); else if (/\.(glb|hdr|jpe?g|png|webp)$/i.test(name)) assetBytes[rel] = s.size; } };
 copied.forEach(walk);
+// Fingerprints identify disposable original GLB bytes, never decoded geometry or visitor saves.
+const modelHashes=Object.fromEntries(['aether/aether.glb','atlas/north-valley.glb'].map(file=>[file,createHash('sha256').update(readFileSync(root+'public/'+file)).digest('hex')]));
 for (const [file, bytes] of packedBytes) assetBytes[file+'.bin'] = bytes.length;
 export default defineConfig({
   base: './', publicDir: false,
-  define: { __ASSET_BYTES__: JSON.stringify(assetBytes) },
+  define: { __ASSET_BYTES__: JSON.stringify(assetBytes), __MODEL_HASHES__: JSON.stringify(modelHashes) },
   plugins: [{ name: 'three-world-assets', closeBundle() {
     for (const directory of copied) cpSync(root + 'public/' + directory, root + 'dist-worlds/' + directory, { recursive: true });
     for (const [file, bytes] of packedBytes) writeFileSync(root+'dist-worlds/'+file+'.bin', bytes);

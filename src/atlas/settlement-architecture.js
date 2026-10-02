@@ -59,11 +59,11 @@ function room(c,w,d,{tent=false,h=3.3,rugFloor=null,wallInset=.145}={}){
 export function createSettlementArchitecture(){
  const mats=createArchitectureMaterials(),records=[],roots=[],seen=new Set();
  function register(region,parent,c,position,yaw=0,info={}){const root=c.finish(parent,position,yaw);roots.push(root);records.push({id:region.id+'-'+records.filter(r=>!r.market&&!r.district).length,region:region.id,name:c.name,root,components:c.parts,roomObstacles:c.roomObstacles,...info});return root;}
- function add(region,root){if(seen.has(region.id))return;seen.add(region.id);
+ function* build(region,root){if(seen.has(region.id))return;seen.add(region.id);
   if(region.id==='watercourt'){
    root.traverse(o=>{if(o.isMesh&&PAVILIONS.some(([n])=>o.name.startsWith(n+'_')))hide(o);});
    root.traverse(o=>{if(!o.isMesh||!/_moulding$|_paving$/.test(o.name))return;pruneTriangles(o,ps=>{const mid=ps[0].clone().add(ps[1]).add(ps[2]).multiplyScalar(1/3);return PAVILIONS.some(([,name,x,y,r,h,z])=>Math.hypot(mid.x-x,mid.z+y)<r+.12&&mid.y>z+.3);});});
-   for(const[,name,x,y,r,h,z]of PAVILIONS){const c=new Craft(mats,name);pavilion(c,r,h,.65,{gold:true});register(region,root,c,[x,z,-y],0,{type:'pavilion',interior:[0,2.18,r*.61],target:[0,2.05,-r*.42],exterior:[r*3.25,h*1.72,r*3.2],look:[0,h*.80,0],radius:r,height:h+.65});}
+   for(const[,name,x,y,r,h,z]of PAVILIONS){const c=new Craft(mats,name);pavilion(c,r,h,.65,{gold:true});register(region,root,c,[x,z,-y],0,{type:'pavilion',interior:[0,2.18,r*.61],target:[0,2.05,-r*.42],exterior:[r*3.25,h*1.72,r*3.2],look:[0,h*.80,0],radius:r,height:h+.65});yield;}
    connectWatercourtPaths(root,mats);
   }
   if(region.id==='highland'){
@@ -95,19 +95,20 @@ export function createSettlementArchitecture(){
      for(const s of [-1,1]){c.tube([s*.91,.04,b.r-.14],[s*.60,Math.min(2.7,b.h*.39)+.2,radius(.36)],.14,'wood',.12);tentLampFooting(c,root,b,s*1.24,b.r+.05);c.lamp([s*1.24,.25,b.r+.05],.75);}
      const rugFloor=cabinFloorLevel(root,b);room(c,w*.66,d*.66,{tent:true,rugFloor});tentEntry(c,root,b,rugFloor);register(region,root,c,[b.x,b.z,-b.y],0,{type:'tent',rugFloor,entry:c.tentEntry,interior:[0,1.62,b.r*.46],target:[.3,1.16,-b.r*.25],exterior:[-b.r*1.1,b.h*.47,b.r+5],look:[0,b.h*.44,0],radius:b.r,height:b.h});
     }
+    yield;
    }
    // Refine the five village approaches; retain the three original cross-valley spans.
-   const c=new Craft(mats,'山城桥头与图腾工艺');refineBridgeheads(c,root,sites.bridges);relocateBridgeTrees(root,sites.buildings);
+   const c=new Craft(mats,'山城桥头与图腾工艺');refineBridgeheads(c,root,sites.bridges);relocateBridgeTrees(root,sites.buildings);yield;
    for(let k=0;k<16;k++){const a=k*Math.PI/8,x=Math.cos(a)*3.83,z=-25+Math.sin(a)*3.83;c.tube([x,35.5,z],[x,34.7,z],.025,'leather');c.add(new T.ConeGeometry(.13,.7,6),'paper',[x,34.5,z],[Math.PI,0,0]);}
    continuousHorns(c);c.ring([0,46.52,-25],3.78,.13,'paper');const paving=entrancePaving(c,root,sites);
-   const infrastructure=register(region,root,c,[0,0,0],0,{type:'infrastructure',inspect:false});infrastructure.userData.paving=paving;for(const deck of c.bridgeDecks||[])infrastructure.add(deck);
+   const infrastructure=register(region,root,c,[0,0,0],0,{type:'infrastructure',inspect:false});infrastructure.userData.paving=paving;for(const deck of c.bridgeDecks||[])infrastructure.add(deck);yield;
    // Only the shallow, individual entrance pavers permit stepping over edges.
    // Structural stone, tent skins and house walls keep ordinary solid collision.
    infrastructure.traverse(o=>{if(o.isMesh&&[mats.pathstone,mats.pathlight].includes(o.material)){o.geometry.computeBoundingBox();o.userData.navStepRange=[o.geometry.boundingBox.min.y,o.geometry.boundingBox.max.y];}});
    const mask=new Craft(mats,'牛角山城 · 守望木雕');carvedMask(mask);const maskRoot=mask.finish(root,[0,42.20,-21.2]);maskRoot.userData.sculpture='horncrest-guardian';roots.push(maskRoot);
    // Smaller carved wayposts echo the same craft language at bridge approaches.
    for(const [x,y,z]of [[-34,-24,8],[38,-15,9],[-27,7,18],[20,31,21],[17,-94,6],[8,-65,7]]){
-    const carving=new Craft(mats,'山城 · 桥头守望雕刻');carvedMask(carving);const post=carving.finish(root,[x+.25,z+6.35,-y+.52]);post.scale.setScalar(.22);post.userData.sculpture='waypost';roots.push(post);
+    const carving=new Craft(mats,'山城 · 桥头守望雕刻');carvedMask(carving);const post=carving.finish(root,[x+.25,z+6.35,-y+.52]);post.scale.setScalar(.22);post.userData.sculpture='waypost';roots.push(post);yield;
    }
   }
   if(region.id==='aether'){
@@ -154,7 +155,7 @@ export function createSettlementArchitecture(){
     for(const s of [-1,1]){c.bench([s*r*.52,base,-r*.36],r*.75,'stone',r>=2);c.lamp([s*r*.62,base,r*.27],.6,'azure');}
     for(let k=0;k<16;k++){const a=k*Math.PI/8;c.box([Math.cos(a)*(r+.48),.918,Math.sin(a)*(r+.48)],[.24,.025,.08],'trim',[0,-a,0],.005);}
     const shrine=register(region,original.parent,c,[x,z,-y],0,{type:'shrine',interior:r<2?[r*.5,base+1.05,r*.15]:[r*.42,base+1.4,r*.44],target:[0,base+1,-r*.45],exterior:r<2?[4.5,2.15,0]:[r*3.3,h*1.7,r*3.4],look:r<2?[0,2,0]:[0,h*.9,0],...(r<2?{exteriorFov:65,exteriorAngles:[0]}:{}),radius:r,height:h});
-    shrine.traverse(o=>{if(o.isMesh&&o.material===mats.stone)o.userData.navStepRange=[0,.94];});
+    shrine.traverse(o=>{if(o.isMesh&&o.material===mats.stone)o.userData.navStepRange=[0,.94];});yield;
    }
   }
   if(region.id==='valley'){
@@ -184,5 +185,7 @@ export function createSettlementArchitecture(){
   }
   root.updateMatrixWorld(true);
  }
- return {add,records,materials:mats,stats:()=>records.map(({root,door,proxy,text,onEnter,filament,papers,doors,shutters,lights,daylight,sign,fire,bell,lamps,bench,book,...r})=>({...r,position:root.getWorldPosition(new T.Vector3()).toArray()})),dispose(){for(const r of roots){r.traverse(o=>o.geometry?.dispose());r.removeFromParent();}mats.wood.map.dispose();mats.wood.normalMap.dispose();Object.values(mats).forEach(m=>m.dispose());}};
+ function add(region,root){for(const checkpoint of build(region,root)){} }
+ async function addAsync(region,root,{yieldWork=()=>new Promise(resolve=>setTimeout(resolve,0))}={}){for(const checkpoint of build(region,root))await yieldWork();}
+ return {add,addAsync,records,materials:mats,stats:()=>records.map(({root,door,proxy,text,onEnter,filament,papers,doors,shutters,lights,daylight,sign,fire,bell,lamps,bench,book,...r})=>({...r,position:root.getWorldPosition(new T.Vector3()).toArray()})),dispose(){for(const r of roots){r.traverse(o=>o.geometry?.dispose());r.removeFromParent();}mats.wood.map.dispose();mats.wood.normalMap.dispose();Object.values(mats).forEach(m=>m.dispose());}};
 }

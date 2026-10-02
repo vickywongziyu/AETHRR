@@ -2,44 +2,58 @@ import * as T from 'three';
 
 // One spatial index shared by every region. Heights and obstacles come from model triangles.
 export function createNavigation(){
- const dynamic=[],cells=new Map(),heightCells=new Map(),jointCells=new Set(),sets=[],size=5,heightSize=1,a=new T.Vector3(),b=new T.Vector3(),c=new T.Vector3(),ab=new T.Vector3(),ac=new T.Vector3(),normal=new T.Vector3();
+ const dynamic=[],cells=new Map(),heightCells=new Map(),jointCells=new Set(),sets=[],size=5,heightSize=1,a=new T.Vector3(),b=new T.Vector3(),c=new T.Vector3();
  const heightRay=new T.Raycaster(),heightNormal=new T.Vector3(),heightNormalMatrix=new T.Matrix3();
- const matrix=new T.Matrix4(),inst=new T.Matrix4(),indexCopies=new WeakMap();let triangles=0,lastObstacle='',lastGround='',lastFailure='',diagnostics=null;
+ const indexCopies=new WeakMap();let triangles=0,lastObstacle='',lastGround='',lastFailure='',diagnostics=null;
  // Keep indexed world vertices once, rather than expanding every triangle's
  // three corners. Collision geometry and Float32 world coordinates stay exact.
  function corners(s,k,v0=a,v1=b,v2=c){const i=k*3,p=s.positions,idx=s.index;v0.fromArray(p,(idx?idx[i]:i)*3);v1.fromArray(p,(idx?idx[i+1]:i+1)*3);v2.fromArray(p,(idx?idx[i+2]:i+2)*3);}
  function append(list,si,triangle){if(list.length+2>list.data.length){const next=new Uint32Array(Math.max(16,list.data.length*2));next.set(list.data);list.data=next;}list.data[list.length++]=si;list.data[list.length++]=triangle;}
- function add(root){
+ function* indexRoot(root){
   diagnostics=null;
   root.updateWorldMatrix(true,true);
+  // Snapshot traversal order and transforms before yielding. Queries in an
+  // already loaded region may run between slices, including on moving islands.
+  const meshes=[],v0=new T.Vector3(),v1=new T.Vector3(),v2=new T.Vector3(),edge=new T.Vector3(),faceNormal=new T.Vector3(),transform=new T.Matrix4(),instanceTransform=new T.Matrix4();
   root.traverse(o=>{
    if(!o.isMesh||o.userData.noCollision)return;
    const name=o.name+' '+(Array.isArray(o.material)?o.material.map(m=>m.name).join(' '):o.material?.name);
    if(/HC pine|leaves|canopy|heather|flowers|needles|crown|grass|Waterfall|water.surface|flowing.river|birds|Distant.range|Distant.atmospheric|glow|light.beam|tracery/i.test(name)&&!/Arrival[ _]grass|terrace|moss|ground/i.test(name))return;
    const p=o.geometry.attributes.position,idx=o.geometry.index;if(!p)return;
+   let floating=o;while(floating&&!floating.userData.floating)floating=floating.parent;
+   meshes.push({o,name,p,idx,world:o.matrixWorld.clone(),instanceCount:o.isInstancedMesh?o.count:1,instances:o.isInstancedMesh?o.instanceMatrix.array.slice(0,o.count*16):null,floating,baseY:floating?.getWorldPosition(new T.Vector3()).y||0,stepRange:o.userData.navStepRange?.slice()});
+  });
+  let remaining=128;
+  for(const {o,name,p,idx,world,instanceCount,instances,floating,baseY,stepRange:localStepRange} of meshes){
    const count=idx?idx.count:p.count;let indices=null;
    if(idx){let cached=indexCopies.get(idx);if(!cached||cached.version!==idx.version){cached={version:idx.version,array:idx.array.slice()};indexCopies.set(idx,cached);}indices=cached.array;}
-   for(let instance=0;instance<(o.isInstancedMesh?o.count:1);instance++){
-    matrix.copy(o.matrixWorld);if(o.isInstancedMesh){o.getMatrixAt(instance,inst);matrix.multiply(inst);}
-    let floating=o;while(floating&&!floating.userData.floating)floating=floating.parent;
-    const stepRange=o.userData.navStepRange?.map(y=>new T.Vector3(0,y,0).applyMatrix4(matrix).y);
-    const precise=new Float64Array(p.count*3);for(let i=0;i<p.count;i++){a.fromBufferAttribute(p,i).applyMatrix4(matrix);a.toArray(precise,i*3);}
-    const set={mesh:o,name:o.name,positions:new Float32Array(precise),index:indices,data:new Float32Array(count),visited:new Uint32Array(count/3),object:floating,baseY:floating?.getWorldPosition(new T.Vector3()).y||0,dy:0,stepRange};const si=sets.length;sets.push(set);
+   for(let instance=0;instance<instanceCount;instance++){
+    transform.copy(world);if(instances){instanceTransform.fromArray(instances,instance*16);transform.multiply(instanceTransform);}
+    const stepRange=localStepRange?.map(y=>new T.Vector3(0,y,0).applyMatrix4(transform).y);
+    const precise=new Float64Array(p.count*3);for(let i=0;i<p.count;i++){v0.fromBufferAttribute(p,i).applyMatrix4(transform);v0.toArray(precise,i*3);if(--remaining===0){remaining=128;diagnostics=null;yield;}}
+    const set={mesh:o,name:o.name,positions:new Float32Array(precise),index:indices,data:new Float32Array(count),visited:new Uint32Array(count/3),object:floating,baseY,dy:floating?floating.getWorldPosition(v0).y-baseY:0,stepRange};const si=sets.length;sets.push(set);
     for(let i=0;i<count;i+=3){
-     a.fromArray(precise,(indices?indices[i]:i)*3);b.fromArray(precise,(indices?indices[i+1]:i+1)*3);c.fromArray(precise,(indices?indices[i+2]:i+2)*3);
-     normal.subVectors(b,a).cross(ac.subVectors(c,a)).normalize();
-     set.data.set([normal.y,Math.min(a.y,b.y,c.y),Math.max(a.y,b.y,c.y)],i);
-     const x0=Math.floor(Math.min(a.x,b.x,c.x)/size),x1=Math.floor(Math.max(a.x,b.x,c.x)/size),z0=Math.floor(Math.min(a.z,b.z,c.z)/size),z1=Math.floor(Math.max(a.z,b.z,c.z)/size);
+     v0.fromArray(precise,(indices?indices[i]:i)*3);v1.fromArray(precise,(indices?indices[i+1]:i+1)*3);v2.fromArray(precise,(indices?indices[i+2]:i+2)*3);
+     faceNormal.subVectors(v1,v0).cross(edge.subVectors(v2,v0)).normalize();
+     set.data.set([faceNormal.y,Math.min(v0.y,v1.y,v2.y),Math.max(v0.y,v1.y,v2.y)],i);
+     const x0=Math.floor(Math.min(v0.x,v1.x,v2.x)/size),x1=Math.floor(Math.max(v0.x,v1.x,v2.x)/size),z0=Math.floor(Math.min(v0.z,v1.z,v2.z)/size),z1=Math.floor(Math.max(v0.z,v1.z,v2.z)/size);
+     if(--remaining===0){remaining=128;diagnostics=null;yield;}
      // Background polygons spanning the entire world are scenery, not navigable ground.
      if((x1-x0+1)*(z1-z0+1)>1600)continue;
-     for(let x=x0;x<=x1;x++)for(let z=z0;z<=z1;z++){const key=x+','+z;let list=cells.get(key);if(!list)cells.set(key,list={data:new Uint32Array(16),length:0});append(list,si,i/3);if(normal.y>.57&&/paving|walkway|bridge|plank|deck|floor|stair|step/i.test(name))jointCells.add(key);}
+     for(let x=x0;x<=x1;x++)for(let z=z0;z<=z1;z++){const key=x+','+z;let list=cells.get(key);if(!list)cells.set(key,list={data:new Uint32Array(16),length:0});append(list,si,i/3);if(faceNormal.y>.57&&/paving|walkway|bridge|plank|deck|floor|stair|step/i.test(name))jointCells.add(key);if(--remaining===0){remaining=128;diagnostics=null;yield;}}
      // Sole support makes several nearby height queries. A finer index of
      // upward faces avoids repeatedly scanning every wall/branch in a 5m cell.
-     if(normal.y>=.57)for(let x=Math.floor(Math.min(a.x,b.x,c.x)/heightSize);x<=Math.floor(Math.max(a.x,b.x,c.x)/heightSize);x++)for(let z=Math.floor(Math.min(a.z,b.z,c.z)/heightSize);z<=Math.floor(Math.max(a.z,b.z,c.z)/heightSize);z++){const key=x+','+z;let list=heightCells.get(key);if(!list)heightCells.set(key,list={data:new Uint32Array(16),length:0});append(list,si,i/3);}
+     if(faceNormal.y>=.57)for(let x=Math.floor(Math.min(v0.x,v1.x,v2.x)/heightSize);x<=Math.floor(Math.max(v0.x,v1.x,v2.x)/heightSize);x++)for(let z=Math.floor(Math.min(v0.z,v1.z,v2.z)/heightSize);z<=Math.floor(Math.max(v0.z,v1.z,v2.z)/heightSize);z++){const key=x+','+z;let list=heightCells.get(key);if(!list)heightCells.set(key,list={data:new Uint32Array(16),length:0});append(list,si,i/3);if(--remaining===0){remaining=128;diagnostics=null;yield;}}
      triangles++;
     }
    }
-  });
+  }
+  diagnostics=null;
+ }
+ function add(root){for(const checkpoint of indexRoot(root)){} }
+ async function addAsync(root,{yieldWork=()=>new Promise(resolve=>setTimeout(resolve,0)),budgetMs=10}={}){
+  const iterator=indexRoot(root),budget=Number.isFinite(budgetMs)?Math.max(1,budgetMs):10;let started=performance.now();
+  for(const checkpoint of iterator)if(performance.now()-started>=budget){await yieldWork();started=performance.now();}
  }
  function sync(){const heights=new Map();for(const s of sets)if(s.object){if(!heights.has(s.object))heights.set(s.object,s.object.getWorldPosition(a).y);s.dy=heights.get(s.object)-s.baseY;}}
  function height(x,z,max=Infinity,min=-Infinity,terrainOnly=false){let best=null;const list=heightCells.get(Math.floor(x/heightSize)+','+Math.floor(z/heightSize));
@@ -204,5 +218,5 @@ export function createNavigation(){
    if(exits>=3){score=val;best=candidate;}
   }return best;
  }
- return {pickGround,supportHeight,canStand,clearVolume,add,addDynamic(mesh,{walkable=false}={}){mesh.userData.navWalkable=walkable;dynamic.push(mesh);return()=>{const i=dynamic.indexOf(mesh);if(i>=0)dynamic.splice(i,1);};},sync,height,walk,obstructed,clearBody,canFly,landing,get lastObstacle(){return lastObstacle;},stats:()=>({lastFailure,lastObstacle,lastGround,...(diagnostics??={triangles,cells:cells.size,heightCells:heightCells.size,bytes:sets.reduce((n,s)=>n+s.positions.byteLength+s.data.byteLength+s.visited.byteLength,0)+[...new Set(sets.map(s=>s.index).filter(Boolean))].reduce((n,a)=>n+a.byteLength,0)+[...cells.values(),...heightCells.values()].reduce((n,c)=>n+c.data.byteLength,0),largest:sets.map(s=>[s.name,s.data.length/3]).sort((a,b)=>b[1]-a[1]).slice(0,5)})})};
+ return {pickGround,supportHeight,canStand,clearVolume,add,addAsync,addDynamic(mesh,{walkable=false}={}){mesh.userData.navWalkable=walkable;dynamic.push(mesh);return()=>{const i=dynamic.indexOf(mesh);if(i>=0)dynamic.splice(i,1);};},sync,height,walk,obstructed,clearBody,canFly,landing,get lastObstacle(){return lastObstacle;},stats:()=>({lastFailure,lastObstacle,lastGround,...(diagnostics??={triangles,cells:cells.size,heightCells:heightCells.size,bytes:sets.reduce((n,s)=>n+s.positions.byteLength+s.data.byteLength+s.visited.byteLength,0)+[...new Set(sets.map(s=>s.index).filter(Boolean))].reduce((n,a)=>n+a.byteLength,0)+[...cells.values(),...heightCells.values()].reduce((n,c)=>n+c.data.byteLength,0),largest:sets.map(s=>[s.name,s.data.length/3]).sort((a,b)=>b[1]-a[1]).slice(0,5)})})};
 }

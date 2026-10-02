@@ -1,5 +1,6 @@
 import {fetchModel,loadModel,loadBinaryResource,paintLoading,transferText,expectedBytes} from '../atlas/asset-loading.js';
 import * as T from 'three';
+import {modelCacheDiagnostics} from '../atlas/model-cache.js';
 import {omitInactiveLights} from './active-lights.js';
 import {createAtlas} from '../atlas/exploration.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -27,8 +28,16 @@ export async function createWorld(container,onProgress=()=>{},reduced,{deferStar
  const scene=new T.Scene();
  let loadingStage='download';const downloads=new AbortController();
  // One progress figure for every base download (models, sky and rock maps), using build-time sizes when the server omits Content-Length.
- const baseFiles=['aether/aether.glb','aether/refined-groves-v24.glb','highland/horncrest.glb','aether/textures/sky.hdr','aether/textures/rock-color-web.jpg','aether/textures/rock-normal-web.jpg','aether/textures/rock-rough-web.jpg'],transfers=new Map(baseFiles.map(f=>[f,{loaded:0,total:expectedBytes(f)}]));
- const track=path=>info=>{if(info.phase!=='download')return;const entry=transfers.get(path);entry.loaded=info.loaded;if(info.total)entry.total=Math.max(entry.total,info.total);if(loadingStage!=='download')return;let loaded=0,total=0;for(const e of transfers.values()){loaded+=e.loaded;total+=e.total||e.loaded;}onProgress(.04+.30*(total?Math.min(1,loaded/total):0),'正在下载群岛与建筑',transferText({phase:'download',loaded,total}));};
+ const baseFiles=['aether/aether.glb','aether/refined-groves-v24.glb','highland/horncrest.glb','aether/textures/sky.hdr','aether/textures/rock-color-web.jpg','aether/textures/rock-normal-web.jpg','aether/textures/rock-rough-web.jpg'],transfers=new Map(baseFiles.map(f=>[f,{loaded:0,total:expectedBytes(f),source:"pending"}]));
+ const track=path=>info=>{
+  if(!['download','cache'].includes(info.phase))return;
+  const entry=transfers.get(path);entry.loaded=info.loaded;entry.source=info.phase;if(info.total)entry.total=Math.max(entry.total,info.total);
+  if(loadingStage!=='download')return;
+  let loaded=0,total=0,local=0,networkLoaded=0,networkTotal=0;
+  for(const e of transfers.values()){loaded+=e.loaded;total+=e.total||e.loaded;if(e.source==='cache')local+=e.loaded;else{networkLoaded+=e.loaded;networkTotal+=e.total||e.loaded;}}
+  const detail=transferText({phase:'download',loaded:networkLoaded,total:networkTotal})+(local?' · 本地复用 '+(local/1e6).toFixed(1)+' MB':'');
+  onProgress(.04+.30*(total?Math.min(1,loaded/total):0),local?'正在复用模型并加载材质':'正在下载群岛与建筑',detail);
+ };
  const prefetch=path=>{const p=fetchModel(import.meta.env.BASE_URL+path,{signal:downloads.signal,onProgress:track(path)});p.catch(()=>{});return p;};
  const modelBytes=prefetch('aether/aether.glb'),groveBytes=prefetch('aether/refined-groves-v24.glb'),hillBytes=prefetch('highland/horncrest.glb');
  onProgress(.02,'正在下载模型、天空与材质');await paintLoading();
@@ -103,13 +112,13 @@ export async function createWorld(container,onProgress=()=>{},reduced,{deferStar
  // desktop side panel). Sync it before the first rendered frame and labels.
  window.addEventListener('resize',resize);resize();
  let started=false;function start(){if(started||disposed)return;started=true;last=performance.now();draw(t);if(!captureMode)raf=requestAnimationFrame(animate);}
- const api={scene,camera,renderer,controls,start,
+ const api={scene,camera,renderer,controls,start,assetCache:modelCacheDiagnostics,
  cancelCameraMotion({preserveExploration=false}={}){if(!preserveExploration&&atlas?.active)atlas.setMode('observe');atlas?.quarter?.ferry?.unfollow();atlas?.starHall?.stop();touring=false;moving=null;report();},
  go(i,{immediate=false}={}){atlas?.quarter?.ferry?.unfollow();atlas?.starHall?.clear();atlas?.buildings.close();delete document.body.dataset.atlasInspecting;if(atlas?.active)atlas.setMode('observe');chapter=i;touring=false;const c=chapters[i];moving={elapsed:0,duration:reduced?.001:Math.max(2.8,Math.min(8,camera.position.distanceTo(vec(c.position))*.055)),from:camera.position.clone(),to:vec(c.position),aimFrom:controls.target.clone(),aimTo:vec(c.target)};if(captureMode||immediate){camera.position.copy(moving.to);controls.target.copy(moving.aimTo);controls.update();draw(t);moving=null;}report();},
  setTour(v){if(v)atlas?.quarter?.ferry?.unfollow();if(v)atlas?.starHall?.clear();if(v)atlas?.buildings.close();if(v&&atlas?.active)atlas.setMode('observe');touring=v;moving=null;if(v){playing=true;tourProgress=chapter/chapters.length;}report();},
  setPlaying(v){playing=v;report();},
  capture(seconds,progress){touring=false;moving=null;t=seconds;cameraAt(progress);controls.update();draw(seconds);return renderer.domElement.toDataURL('image/png');},
- stats(){return{meshes,vertices,highlandLoaded:!!highland,chapters:chapters.length,floatingIslands:floats.length,waterfalls:waters.length,birds:flock.birds.length,playing,touring,chapter,time:t,camera:camera.position.toArray(),drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles};},
+ stats(){return{assetCache:modelCacheDiagnostics.stats(),meshes,vertices,highlandLoaded:!!highland,chapters:chapters.length,floatingIslands:floats.length,waterfalls:waters.length,birds:flock.birds.length,playing,touring,chapter,time:t,camera:camera.position.toArray(),drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles};},
  setQuality(level){const ratio={low:.75,balanced:1,high:mobile?1.25:1.5}[level]??1.5;renderer.setPixelRatio(Math.min(devicePixelRatio,ratio));composer.setPixelRatio(renderer.getPixelRatio());composer.passes[1].enabled=level!=='low';renderer.shadowMap.enabled=level!=='low';const samples=level==='low'?0:level==='balanced'?2:mobile?2:4;for(const target of [composer.renderTarget1,composer.renderTarget2])if(target.samples!==samples){target.samples=samples;target.dispose();}return {pixelRatio:renderer.getPixelRatio(),samples,bloom:composer.passes[1].enabled,shadows:renderer.shadowMap.enabled};},
  dispose(){disposed=true;api.shell?.dispose();api.visitor?.dispose();atlas?.dispose();cancelAnimationFrame(raf);window.removeEventListener('resize',resize);document.removeEventListener('visibilitychange',visibility);controls.dispose();crossings.dispose();scene.traverse(o=>{o.geometry?.dispose();if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.dispose());});composer.dispose();maps.dispose();hdr.dispose();env.dispose();restoreLightRendering();renderer.dispose();},
  };if(!captureMode){atlas=await createAtlas(api,{sources:[gltf.scene,highland],time,sun,hillSun,hemisphere,maps,onProgress});api.atlas=atlas;}if(!deferStart)start();return api;
