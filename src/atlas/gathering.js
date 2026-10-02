@@ -27,9 +27,9 @@ export function createGathering({world,nav,time,isBlocked,say}){
   bag.querySelectorAll('[data-herb]').forEach(b=>b.onclick=()=>{const item=items.get(b.dataset.herb),count=store.snapshot().items[item.id]||0;bag.querySelector('.herb-details').innerHTML=`<small>${item.kind} · ${count} 份</small><h3>${item.name}</h3><p>${item.description}</p>`;});
  }
  function refreshEffects(){const market=world.atlas?.market?.store,active=Object.keys(EFFECTS).filter(id=>market?.effect(id)>0);const section=bag.querySelector('.bag-active-effects');section.hidden=!active.length;const list=section.querySelector('ul');list.replaceChildren();for(const id of active){const row=document.createElement('li');row.dataset.activeEffect=id;row.textContent=EFFECTS[id].name+' · '+EFFECTS[id].text+' · 剩余 '+Math.ceil(market.effect(id)/1000)+' 秒';list.append(row);}supply.hidden=!active.length;supply.title=active.map(id=>EFFECTS[id].name+' · '+Math.ceil(market.effect(id)/1000)+' 秒').join('；');for(const n of bag.querySelectorAll('[data-effect-countdown]')){const remaining=market?.effect(n.dataset.effectCountdown)||0;n.textContent=remaining?'生效中 · 剩余 '+Math.ceil(remaining/1000)+' 秒':'';}for(const b of bag.querySelectorAll('[data-consume]'))b.disabled=market?.effect(b.dataset.consume)>0;}
- function focusNearby(){
+ function focusNearby({type=null,region=null}={}){
   if(isBlocked())return false;cancel();world.cancelCameraMotion();
-  const candidates=[...flora.nodes.values()].filter(n=>n.active&&(n.kind==='flower'||n.kind==='blossom')&&n.mesh.parent.visible).map(node=>({node,position:flora.worldPosition(node,new T.Vector3())}));
+  const candidates=[...flora.nodes.values()].filter(n=>n.active&&(!type||n.type===type)&&(!region||n.region===region)&&(n.kind==='flower'||n.kind==='blossom')&&n.mesh.parent.visible).map(node=>({node,position:flora.worldPosition(node,new T.Vector3())}));
   for(const c of candidates){const neighbours=candidates.filter(other=>other!==c&&other.node.region===c.node.region&&other.position.distanceToSquared(c.position)<36).length;c.d=c.position.distanceToSquared(camera.position)/(1+Math.min(neighbours,6)*.45);if(c.node.region==='valley'&&c.position.y>20)c.d+=100000;}candidates.sort((a,b)=>a.d-b.d);
   const direction=new T.Vector3().subVectors(camera.position,controls.target).setY(0).normalize();if(direction.lengthSq()<.1)direction.set(0,0,1);
   for(const {node} of candidates.slice(0,100)){
@@ -41,7 +41,7 @@ export function createGathering({world,nav,time,isBlocked,say}){
   say('请在地图中选择一片区域，再靠近它的草地。');return false;
  }
  const supply=document.createElement('button');supply.className='supply-status';supply.hidden=true;supply.textContent='✦';supply.setAttribute('aria-label','查看生效中的补给');document.querySelector('.atlas-location').append(supply);supply.onclick=()=>{if(!isBlocked())showBag();};
- nearButton.onclick=focusNearby;
+ nearButton.onclick=()=>focusNearby();
  function showBag(){if(bag.open)return;world.atlas?.resources?.cancel();cancel();bagFocus=document.activeElement;refreshBag();bag.showModal();bag.querySelector('.herb-close').focus();}
  function hideBag(){bag.close();}
  bagButton.onclick=showBag;bag.querySelector('.herb-close').onclick=hideBag;bag.addEventListener('close',()=>bagFocus?.focus({preventScroll:true}));bag.addEventListener('click',e=>{if(e.target===bag){const r=bag.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)hideBag();}});
@@ -70,9 +70,10 @@ export function createGathering({world,nav,time,isBlocked,say}){
  function cancel({clearSelection=false}={}){action=null;progress.hidden=true;hint.hidden=true;if(clearSelection)setHover(null);}
  function collect(node){
   if(!node?.active||isBlocked()||bag.open||action)return;
-  world.cancelCameraMotion();flora.worldPosition(node,pos);
+  flora.worldPosition(node,pos);
   const center=node.mesh.geometry.boundingSphere.center.clone().applyMatrix4(node.matrix).add(node.mesh.parent.position);if(nav.obstructed(camera.position,center,.004)){say('这株植物被遮住了，请换个角度采集。');return;}
   if(camera.position.distanceTo(pos)>42){say('请滚轮靠近一些，再采集这株植物。');return;}
+  world.cancelCameraMotion();
   action={node,duration:world.atlas?.market?.store.effect('tonic')?600:900,start:performance.now(),camera:camera.position.clone()};setHover(node);hint.hidden=true;progress.hidden=false;progress.querySelector('span').textContent='正在采集 · '+items.get(node.type).name;progress.querySelector('i').style.transform='scaleX(0)';
  }
  function complete(node){

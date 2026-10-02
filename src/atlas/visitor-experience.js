@@ -5,6 +5,7 @@ export function createVisitorExperience(world){
  const menu=document.createElement('button');menu.className='visitor-menu';menu.textContent='更多';menu.setAttribute('aria-expanded','false');menu.setAttribute('aria-label','展开网站导航');header.append(menu);
  const tools=document.createElement('div');tools.className='visitor-tools';tools.innerHTML='<button class="visitor-routes" aria-expanded="false" aria-controls="visitor-route-panel">游览路线</button><button class="visitor-hide" aria-label="隐藏界面，H 键恢复" title="H · 隐藏或显示界面">净览 <kbd>H</kbd></button>';
  if(world.atlas?.discoveries)tools.append(world.atlas.discoveries.button);
+ if(world.atlas?.objectives)tools.append(world.atlas.objectives.button);
  body.append(tools);footer.id='visitor-route-panel';
  function enter(){body.dataset.visitor='exploring';intro.inert=true;world.renderer.domElement.focus({preventScroll:true});}
  function routes(open){body.dataset.visitorRoutes=String(open);footer.inert=!open;tools.firstElementChild.setAttribute('aria-expanded',String(open));}
