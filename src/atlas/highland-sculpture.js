@@ -1,4 +1,5 @@
 import * as T from 'three';
+import {createGroundQuery} from './ground-query.js';
 import {ConvexGeometry} from 'three/addons/geometries/ConvexGeometry.js';
 import pineSites from './pine-sites.json';
 
@@ -80,8 +81,10 @@ export function tentSurfaceRadius(b,t,a){
 // to a different terrace. The paving top follows the terrain at every corner.
 export function entrancePaving(c,root,sites){
  root.updateWorldMatrix(true,true);const ground=[];root.traverse(o=>{if(o.isMesh&&/^HC ground/.test(o.material?.name||''))ground.push(o);});
+ const query=createGroundQuery(ground);
+ try{
  const ray=new T.Raycaster(),p=new T.Vector3(),down=new T.Vector3(0,-1,0),samples=[],routes=[];
- function height(x,z,reference){p.set(x,reference+1.2,z);root.localToWorld(p);ray.set(p,down);ray.far=2.7;const hit=ray.intersectObjects(ground,false)[0];return hit?root.worldToLocal(hit.point.clone()).y:null;}
+ function height(x,z,reference){p.set(x,reference+1.2,z);root.localToWorld(p);ray.set(p,down);ray.far=2.7;const hit=query.intersect(ray)[0];return hit?root.worldToLocal(hit.point.clone()).y:null;}
  const occupied=new Map();
  function pave(points,width,label){
   const curve=new T.CatmullRomCurve3(points.map(p=>new T.Vector3(p[0],p[2],p[1]))),length=curve.getLength(),rows=Math.ceil(length/.71),record={label,stones:0,start:points[0],end:points.at(-1)};
@@ -121,6 +124,7 @@ export function entrancePaving(c,root,sites){
   pave(points,1.75,'entrance-'+i);
  }
  return {routes,samples};
+ }finally{query.dispose();}
 }
 
 export function continuousHorns(c){

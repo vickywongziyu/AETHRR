@@ -1,4 +1,5 @@
 import * as T from 'three';
+import {createGroundQuery} from './ground-query.js';
 import {Craft} from './architecture-kit.js';
 
 // The original foreground pavilions end in water before the northern garden.
@@ -12,8 +13,10 @@ export function connectWatercourtPaths(root,materials){
  float stoneJoint=min(min(stoneCell.x,1.-stoneCell.x),min(stoneCell.y,1.-stoneCell.y));
  diffuseColor.rgb*=mix(.62,1.,smoothstep(.012,.03,stoneJoint));`);};paving.customProgramCacheKey=()=> 'watercourt-paving-v51';
  const pathMaterials={...materials,pale:paving};
+ const query=createGroundQuery([terrain]);
+ try{
  const ray=new T.Raycaster(),down=new T.Vector3(0,-1,0);
- const ground=(x,z)=>{ray.set(root.localToWorld(new T.Vector3(x,30,z)),down);const hit=ray.intersectObject(terrain,false)[0];return hit?root.worldToLocal(hit.point.clone()).y:null;};
+ const ground=(x,z)=>{ray.set(root.localToWorld(new T.Vector3(x,30,z)),down);const hit=query.intersect(ray)[0];return hit?root.worldToLocal(hit.point.clone()).y:null;};
  const definitions=[
   {name:'西岸花园石径',points:[[-12.82,.7445,13.14],[-14.8,.78,10.2],[-12.3,.84,4.6],[-11.4,.9,.3],[-11,.96,-3]]},
   {name:'东岸花园石径',points:[[6.417,1.3571,7.585],[9,1.45,4],[14,1.72,1],[17.1207,1.8802,-5.1794]]},
@@ -55,4 +58,5 @@ export function connectWatercourtPaths(root,materials){
   for(let i=6;i<count-5;i+=12){const {p}=rows[i],base=ground(p.x,p.z)??-.65;if(p.y-base>.4)c.cylinder([p.x,(p.y+base)/2,p.z],.22,p.y-base,'stone',.28,10);}
   c.finish(root);root.userData.watercourtPaths.push({name,points:rows.map(({p})=>p.toArray()),width:half*2});
  }
+ }finally{query.dispose();}
 }
